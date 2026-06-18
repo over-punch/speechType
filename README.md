@@ -4,9 +4,15 @@
 
 Typography that follows your voice — per-word typographic emphasis synced to Web Speech API boundary events. Each spoken word gets wider tracking, heavier weight, and larger optical size; the rest of the text recedes. A read-along effect grounded in typographic logic, not arbitrary highlight colours.
 
+![speechType emphasising each word of a paragraph in turn as it is spoken aloud — the active word grows bolder, wider-tracked, and larger in optical size while the surrounding text fades back](https://raw.githubusercontent.com/Liiift-Studio/speechType/main/assets/speechtype-demo.gif?v=1)
+
 **[speechtype.com](https://speechtype.com)** · [npm](https://www.npmjs.com/package/@liiift-studio/speechtype) · [GitHub](https://github.com/Liiift-Studio/SpeechType)
 
 TypeScript · Zero dependencies · React + Vanilla JS
+
+**Good for** read-along reading aids, language-learning apps, teleprompters, and any interface where a spoken voice and on-screen text need to stay visibly in sync.
+
+> **Requires a variable font** with `wght` and `opsz` axes (e.g. Merriweather, Inter, Source Serif). The weight and optical-size emphasis are written via `font-variation-settings`; with a static font only the tracking and opacity changes apply.
 
 ---
 
@@ -25,6 +31,8 @@ npm install @liiift-studio/speechtype
 ### React component (controlled)
 
 `SpeechTypeText` is a controlled component — you manage a `SpeechSynthesisUtterance` yourself, track which word is active in state, and pass the index as a prop. This pattern gives you full control over voice, timing, and UI.
+
+> **Note:** the controlled component and the `useSpeechType` hook only apply the *visual* options (`activeTracking`, `activeWeight`, `activeOpsz`, `inactiveOpacity`, `transitionMs`). The *speech* options (`rate`, `pitch`, `volume`, `onUnsupported`, `onError`) are only read by `startSpeechType`, since in the controlled pattern you own the `SpeechSynthesisUtterance`. `SpeechTypeText` also takes an `as` prop (default `"p"`) and forwards any `aria-*`, `data-*`, `role`, and `lang` attributes to the rendered element.
 
 ```tsx
 "use client"
@@ -165,16 +173,20 @@ const opts: SpeechTypeOptions = {
 
 ## Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `activeTracking` | `number` | `0.06` | Letter-spacing on the active (currently spoken) word, in em |
-| `activeWeight` | `number` | `700` | `wght` axis value on the active word |
-| `activeOpsz` | `number` | `24` | `opsz` axis value on the active word |
-| `inactiveOpacity` | `number` | `0.45` | Opacity of inactive (not currently spoken) words |
-| `transitionMs` | `number` | `80` | CSS transition duration in ms for style changes |
-| `rate` | `number` | `0.9` | Speech rate (0.1–10). Passed to `SpeechSynthesisUtterance` |
-| `pitch` | `number` | `1` | Speech pitch (0–2). Passed to `SpeechSynthesisUtterance` |
-| `volume` | `number` | `1` | Speech volume (0–1). Passed to `SpeechSynthesisUtterance` |
+Visual options apply everywhere; speech options are only read by `startSpeechType` (see the note under [React component](#react-component-controlled)).
+
+| Option | Type | Default | Scope | Description |
+|--------|------|---------|-------|-------------|
+| `activeTracking` | `number` | `0.06` | visual | Letter-spacing on the active (currently spoken) word, in em |
+| `activeWeight` | `number` | `700` | visual | `wght` axis value on the active word. Must sit within the font's `wght` axis range |
+| `activeOpsz` | `number` | `24` | visual | `opsz` axis value on the active word. Must sit within the font's `opsz` axis range |
+| `inactiveOpacity` | `number` | `0.45` | visual | Opacity of inactive (not currently spoken) words. Keep ≥ 0.3 for legibility — values below ~0.5 may drop contrast under WCAG AA depending on your colours |
+| `transitionMs` | `number` | `80` | visual | CSS transition duration in ms for style changes |
+| `rate` | `number` | `0.9` | speech | Speech rate (0.1–10). Passed to `SpeechSynthesisUtterance` |
+| `pitch` | `number` | `1` | speech | Speech pitch (0–2). Passed to `SpeechSynthesisUtterance` |
+| `volume` | `number` | `1` | speech | Speech volume (0–1). Passed to `SpeechSynthesisUtterance` |
+| `onUnsupported` | `() => void` | — | speech | Called when the browser has no `speechSynthesis`. Use it to surface a fallback (e.g. show the text statically or a manual stepper) |
+| `onError` | `(e: SpeechSynthesisErrorEvent) => void` | — | speech | Called on a real speech error. The normal `"interrupted"` cancellation is filtered out for you |
 
 ---
 
@@ -184,7 +196,29 @@ const opts: SpeechTypeOptions = {
 
 `startSpeechType` wires a `SpeechSynthesisUtterance` to the browser's Web Speech API, listens for `boundary` events, maps the character offset to a word index, and calls `applySpeechType` on each event. It returns a `stop` function that cancels synthesis and removes all emphasis.
 
-**Browser support:** Web Speech API is supported in Chrome, Edge, and Safari. Firefox requires a flag. `startSpeechType` falls back silently in environments without `speechSynthesis`.
+**Browser support:** Web Speech API is supported in Chrome, Edge, and Safari. Firefox requires a flag. Note that Safari fires `boundary` events sparsely, so word-level sync is most reliable in Chromium-based browsers; where boundaries don't fire, the text simply stays un-emphasised. `startSpeechType` falls back silently in environments without `speechSynthesis` — pass `onUnsupported` to detect that case and render your own fallback:
+
+```ts
+startSpeechType(el, {
+  onUnsupported: () => showManualStepper(),     // no Web Speech API here
+  onError: (e) => console.warn('Speech failed', e.error),
+})
+```
+
+---
+
+## Accessibility
+
+speechType is built for read-along contexts, so it ships screen-reader support rather than leaving it to you:
+
+- Each word span is marked `aria-hidden="true"` and the active word also gets `aria-current="true"`, so assistive tech reads continuous text instead of 27 separate spans.
+- An off-screen `aria-live="polite"` region announces the active word as emphasis moves, keeping non-visual users in sync with the highlight.
+- All emphasis is plain CSS (`font-variation-settings`, `letter-spacing`, `opacity`) — no content is duplicated or reordered.
+
+Two trade-offs to design around:
+
+- **Contrast.** Inactive words fade to `inactiveOpacity` (default `0.45`), which *reduces* contrast. Keep it at `0.3` or higher and verify the result still meets WCAG AA (4.5:1) against your background — or raise it toward `1` if your audience needs maximum legibility.
+- **Inline markup is flattened.** `prepareSpeechType` reads `textContent`, so inline children (`<em>`, `<strong>`, `<a>`, …) inside the target element are replaced by plain text when words are wrapped. Apply speechType to elements whose formatting you don't need to preserve, and use `getCleanHTML(el)` to recover the unwrapped markup if needed.
 
 ---
 

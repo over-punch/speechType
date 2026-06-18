@@ -1,0 +1,90 @@
+<!doctype html>
+<!-- speechType README capture page — loads the real dist bundle and drives per-word emphasis deterministically -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>speechType capture</title>
+
+<!--
+	Import map: the published dist/index.js imports "react" and "react/jsx-runtime"
+	at the top level (only its React wrapper needs them). The vanilla functions we
+	exercise here — prepareSpeechType / applySpeechType — never touch React, so we
+	satisfy the imports with tiny stub modules. This means the capture runs the
+	REAL package code path, not a reimplementation.
+-->
+<script type="importmap">
+{
+	"imports": {
+		"react": "./stub-react.mjs",
+		"react/jsx-runtime": "./stub-react.mjs"
+	}
+}
+</script>
+
+<style>
+	/* Variable Merriweather — request the wght + opsz axes the effect drives. */
+	@font-face {
+		font-family: "Merriweather";
+		src: url("./Merriweather.woff2") format("woff2");
+		font-weight: 300 900;
+		font-display: block;
+	}
+
+	html, body {
+		margin: 0;
+		padding: 0;
+		background: transparent; /* omitBackground screenshots keep rounded corners clean */
+	}
+
+	#card {
+		/* Theme pulled from the live site's globals.css (oklch hue 295). */
+		--background: oklch(0.17 0.0892 295);
+		--foreground: oklch(0.97 0.008 295);
+		box-sizing: border-box;
+		width: 920px;
+		padding: 64px 72px;
+		background: var(--background);
+		border-radius: 20px;
+		color: var(--foreground);
+	}
+
+	#para {
+		font-family: "Merriweather", serif;
+		font-size: 34px;
+		line-height: 1.85;
+		margin: 0;
+		/* opsz default — the active word will override via font-variation-settings */
+		font-variation-settings: "opsz" 18;
+		letter-spacing: 0;
+	}
+</style>
+</head>
+<body>
+	<div id="card">
+		<p id="para">Every word spoken carries its own weight — a breath of meaning that arrives, lingers, and fades. The voice knows where it is. The page does not.</p>
+	</div>
+
+	<script type="module">
+		import { prepareSpeechType, applySpeechType } from "./dist/index.js"
+
+		const para = document.getElementById("para")
+
+		// Prepare once: wraps each word in a <span class="st-word"> with transitions.
+		prepareSpeechType(para, { transitionMs: 120 })
+
+		// Expose the real applySpeechType so the Playwright driver can step the
+		// active word index exactly as a Web Speech API boundary event would.
+		window.__step = (i) => applySpeechType(para, i, {
+			activeTracking: 0.07,
+			activeWeight: 800,
+			activeOpsz: 48,
+			inactiveOpacity: 0.32,
+			transitionMs: 120,
+		})
+
+		// Signal readiness once fonts are loaded so captures never shoot a fallback face.
+		window.__ready = document.fonts.ready.then(() => true)
+		window.__wordCount = para.querySelectorAll(".st-word").length
+	</script>
+</body>
+</html>
