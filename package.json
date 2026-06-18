@@ -1,6 +1,6 @@
 {
 	"name": "@liiift-studio/speechtype",
-	"version": "1.0.8",
+	"version": "1.0.9",
 	"description": "Typography that follows your voice — per-word typographic emphasis synced to Web Speech API boundary events",
 	"type": "module",
 	"main": "dist/index.cjs",
