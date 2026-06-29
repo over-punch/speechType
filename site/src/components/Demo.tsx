@@ -275,7 +275,7 @@ export default function Demo() {
 			{/* Demo paragraph */}
 			<div
 				className="rounded-lg p-6 flex flex-col gap-4"
-				style={{ background: 'rgba(212,184,240,0.04)', border: '1px solid rgba(212,184,240,0.12)' }}
+				style={{ background: 'color-mix(in oklch, var(--foreground) 4%, transparent)', border: '1px solid color-mix(in oklch, var(--foreground) 12%, transparent)' }}
 			>
 				<SpeechTypeText
 					ref={paraRef}
