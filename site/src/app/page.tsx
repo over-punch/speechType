@@ -5,6 +5,7 @@ import ToolDirectory from "@/components/ToolDirectory"
 import { version } from "../../../package.json"
 import { version as siteVersion } from "../../package.json"
 import SiteFooter from "../components/SiteFooter"
+import PortsSection from "../components/PortsSection"
 import { MagnetChar } from "@liiift-studio/magnettype"
 
 export default function Home() {
@@ -125,6 +126,8 @@ return <p ref={ref}>Every word spoken carries its own weight.</p>`} />
 					</div>
 				</div>
 			</section>
+
+			<PortsSection npm="@liiift-studio/speechtype" bundle="speechtype" attr="data-speechtype" repo="Liiift-Studio/SpeechType" />
 
 			<SiteFooter current="speechType" npmVersion={version} siteVersion={siteVersion} />
 
