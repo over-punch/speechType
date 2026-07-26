@@ -79,10 +79,10 @@
 	"homepage": "https://speechtype.com",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Liiift-Studio/SpeechType.git"
+		"url": "https://github.com/Liiift-Studio/speechType.git"
 	},
 	"bugs": {
-		"url": "https://github.com/Liiift-Studio/SpeechType/issues"
+		"url": "https://github.com/Liiift-Studio/speechType/issues"
 	},
 	"sideEffects": false,
 	"publishConfig": {
