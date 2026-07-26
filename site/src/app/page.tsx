@@ -109,7 +109,7 @@ return <p ref={ref}>Every word spoken carries its own weight.</p>`} />
 						<p className="text-muted">Options</p>
 						<table className="w-full text-xs" aria-label="SpeechTypeOptions API reference">
 							<thead><tr className="text-subtle text-left"><th className="pb-2 pr-6 font-normal">Option</th><th className="pb-2 pr-6 font-normal">Default</th><th className="pb-2 font-normal">Description</th></tr></thead>
-							<tbody className="text-muted zebra-bleed">
+							<tbody className="text-muted zebra">
 								<tr className="hover:bg-foreground/5 transition-colors"><td className="py-2 pr-6 font-mono">activeTracking</td><td className="py-2 pr-6">0.06</td><td className="py-2">Letter-spacing on the active word in em.</td></tr>
 								<tr className="hover:bg-foreground/5 transition-colors"><td className="py-2 pr-6 font-mono">activeWeight</td><td className="py-2 pr-6">700</td><td className="py-2">wght axis value on the active word.</td></tr>
 								<tr className="hover:bg-foreground/5 transition-colors"><td className="py-2 pr-6 font-mono">activeOpsz</td><td className="py-2 pr-6">24</td><td className="py-2">opsz axis value on the active word.</td></tr>
