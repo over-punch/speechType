@@ -1,36 +1,27 @@
 import Demo from "@/components/Demo"
-import CopyInstall from "@/components/CopyInstall"
+import Hero from "@/components/Hero"
 import CodeBlock from "@/components/CodeBlock"
 import { version } from "../../../package.json"
 import { version as siteVersion } from "../../package.json"
 import SiteFooter from "../components/SiteFooter"
 import PortsSection from "../components/PortsSection"
-import { MagnetChar } from "@liiift-studio/magnettype"
 
 export default function Home() {
 	return (
 		<main className="flex flex-col items-center px-6 py-20 gap-24">
 
 			{/* Hero */}
-			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-6">
-				<div className="flex flex-col gap-2">
-					<p className="text-xs uppercase tracking-[0.18em] font-medium text-muted">speech-driven emphasis</p>
-					<h1 className="text-4xl lg:text-8xl xl:text-9xl" style={{ fontFamily: "var(--font-merriweather), serif", fontVariationSettings: '"wght" 300, "opsz" 144', lineHeight: "1.05em" }}>
-						<MagnetChar as="span" minWeight={300} maxWeight={800} spreadRadius={220} fixedAxes={{ opsz: 144 }}>Typography that</MagnetChar><br />
-						<MagnetChar as="span" minWeight={300} maxWeight={800} spreadRadius={220} fixedAxes={{ opsz: 144 }} style={{ color: "var(--foreground-subtle)", fontStyle: "italic" }}>follows your voice.</MagnetChar>
-					</h1>
-				</div>
-				<div className="flex flex-wrap items-center gap-4">
-					<CopyInstall />
-					<a href="https://github.com/Liiift-Studio/speechType" className="text-sm text-muted hover:text-foreground transition-colors">GitHub ↗</a>
-				</div>
-				<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted tracking-wide">
-					<span>TypeScript</span><span aria-hidden="true">·</span><span>Zero dependencies</span><span aria-hidden="true">·</span><span>React + Vanilla JS</span>
-				</div>
+			<Hero
+				eyebrow="speech-driven emphasis"
+				title={[{ text: "Typography that" }, { text: "follows your voice.", italic: true, subtle: true }]}
+				install="@liiift-studio/speechtype"
+				github="https://github.com/Liiift-Studio/speechType"
+				tech={["TypeScript", "Zero dependencies", "React + Vanilla JS"]}
+			>
 				<p className="text-base leading-relaxed max-w-lg">
 					When text is read aloud via speech synthesis, there is no visual indicator of which word is being spoken — the connection between audio and typography is severed. speechType wraps words in spans and listens to Web Speech API boundary events, applying typographic emphasis to each word as it is spoken.
 				</p>
-			</section>
+			</Hero>
 
 			{/* Demo */}
 			<section className="w-full max-w-2xl lg:max-w-5xl flex flex-col gap-4">
