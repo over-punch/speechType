@@ -2,6 +2,7 @@
 
 // Interactive demo: Speak button or manual word slider drives per-word typographic emphasis
 import { useState, useEffect, useRef, useDeferredValue } from "react"
+import { useClientValue } from "@/lib/clientValue"
 import { SpeechTypeText, startSpeechType } from "@liiift-studio/speechtype"
 import type { SpeechTypeOptions } from "@liiift-studio/speechtype"
 
@@ -18,7 +19,9 @@ export default function Demo() {
 
 	// Speech synthesis state
 	const [speaking, setSpeaking] = useState(false)
-	const [supported, setSupported] = useState(true)
+	// Read during render via useSyncExternalStore — true during SSR so the demo UI is
+	// server-rendered, then the real capability once hydrated.
+	const supported = useClientValue(() => 'speechSynthesis' in window, true)
 
 	// Deferred option values for smooth slider interaction
 	const [activeWeight, setActiveWeight] = useState(700)
@@ -44,7 +47,6 @@ export default function Demo() {
 
 	// Detect SpeechSynthesis support on mount; clear poll interval on unmount
 	useEffect(() => {
-		setSupported('speechSynthesis' in window)
 		return () => {
 			if (pollRef.current !== null) {
 				clearInterval(pollRef.current)
