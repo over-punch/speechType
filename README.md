@@ -6,7 +6,7 @@ Typography that follows your voice — per-word typographic emphasis synced to W
 
 ![speechType emphasising each word of a paragraph in turn as it is spoken aloud — the active word grows bolder, wider-tracked, and larger in optical size while the surrounding text fades back](https://raw.githubusercontent.com/Liiift-Studio/speechType/main/assets/speechtype-demo.gif?v=1)
 
-**[speechtype.com](https://speechtype.com)** · [npm](https://www.npmjs.com/package/@liiift-studio/speechtype) · [GitHub](https://github.com/Liiift-Studio/speechType)
+**[speechtype.vercel.app](https://speechtype.vercel.app)** · [npm](https://www.npmjs.com/package/@liiift-studio/speechtype) · [GitHub](https://github.com/Liiift-Studio/speechType)
 
 TypeScript · Zero dependencies · React + Vanilla JS
 
