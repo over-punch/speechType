@@ -79,10 +79,10 @@
 	"homepage": "https://speechtype.vercel.app",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Liiift-Studio/speechType.git"
+		"url": "git+https://github.com/over-punch/speechType.git"
 	},
 	"bugs": {
-		"url": "https://github.com/Liiift-Studio/speechType/issues"
+		"url": "https://github.com/over-punch/speechType/issues"
 	},
 	"sideEffects": false,
 	"publishConfig": {

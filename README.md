@@ -1,12 +1,12 @@
 # speechType
 
-[![npm](https://img.shields.io/npm/v/%40liiift-studio%2Fspeechtype.svg)](https://www.npmjs.com/package/@overpunch/speechtype) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![part of liiift type-tools](https://img.shields.io/badge/liiift-type--tools-blueviolet)](https://github.com/Liiift-Studio/type-tools)
+[![npm](https://img.shields.io/npm/v/%40overpunch%2Fspeechtype.svg)](https://www.npmjs.com/package/@overpunch/speechtype) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![part of liiift type-tools](https://img.shields.io/badge/liiift-type--tools-blueviolet)](https://github.com/over-punch/type-tools)
 
 Typography that follows your voice — per-word typographic emphasis synced to Web Speech API boundary events. Each spoken word gets wider tracking, heavier weight, and larger optical size; the rest of the text recedes. A read-along effect grounded in typographic logic, not arbitrary highlight colours.
 
-![speechType emphasising each word of a paragraph in turn as it is spoken aloud — the active word grows bolder, wider-tracked, and larger in optical size while the surrounding text fades back](https://raw.githubusercontent.com/Liiift-Studio/speechType/main/assets/speechtype-demo.gif?v=1)
+![speechType emphasising each word of a paragraph in turn as it is spoken aloud — the active word grows bolder, wider-tracked, and larger in optical size while the surrounding text fades back](https://raw.githubusercontent.com/over-punch/speechType/main/assets/speechtype-demo.gif?v=1)
 
-**[speechtype.vercel.app](https://speechtype.vercel.app)** · [npm](https://www.npmjs.com/package/@overpunch/speechtype) · [GitHub](https://github.com/Liiift-Studio/speechType)
+**[speechtype.vercel.app](https://speechtype.vercel.app)** · [npm](https://www.npmjs.com/package/@overpunch/speechtype) · [GitHub](https://github.com/over-punch/speechType)
 
 TypeScript · Zero dependencies · React + Vanilla JS
 

@@ -15,7 +15,7 @@ export default function Home() {
 				eyebrow="speech-driven emphasis"
 				title={[{ text: "Typography that" }, { text: "follows your voice.", italic: true, subtle: true }]}
 				install="@overpunch/speechtype"
-				github="https://github.com/Liiift-Studio/speechType"
+				github="https://github.com/over-punch/speechType"
 				tech={["TypeScript", "Zero dependencies", "React + Vanilla JS"]}
 			>
 				<p className="text-base leading-relaxed max-w-lg">
@@ -117,7 +117,7 @@ return <p ref={ref}>Every word spoken carries its own weight.</p>`} />
 				</div>
 			</section>
 
-			<PortsSection npm="@overpunch/speechtype" bundle="speechtype" attr="data-speechtype" repo="Liiift-Studio/SpeechType" />
+			<PortsSection npm="@overpunch/speechtype" bundle="speechtype" attr="data-speechtype" repo="over-punch/SpeechType" />
 
 			<SiteFooter current="speechType" npmVersion={version} siteVersion={siteVersion} />
 
