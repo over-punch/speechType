@@ -9,8 +9,8 @@
 		"lint": "eslint"
 	},
 	"dependencies": {
-		"@liiift-studio/magnettype": "^1.2.1",
-		"@liiift-studio/speechtype": "file:..",
+		"@overpunch/magnettype": "^1.2.1",
+		"@overpunch/speechtype": "file:..",
 		"@tailwindcss/postcss": "^4",
 		"@types/node": "^20",
 		"next": "^16.2.9",

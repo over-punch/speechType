@@ -3,8 +3,8 @@
 // Interactive demo: Speak button or manual word slider drives per-word typographic emphasis
 import { useState, useEffect, useRef, useDeferredValue } from "react"
 import { useClientValue } from "@/lib/clientValue"
-import { SpeechTypeText, startSpeechType } from "@liiift-studio/speechtype"
-import type { SpeechTypeOptions } from "@liiift-studio/speechtype"
+import { SpeechTypeText, startSpeechType } from "@overpunch/speechtype"
+import type { SpeechTypeOptions } from "@overpunch/speechtype"
 
 /** Sample paragraph about voice, speech, and the act of reading */
 const SAMPLE = "Every word spoken carries its own weight — a breath of meaning that arrives, lingers, and fades. To read aloud is to make language visible in time, each syllable a footprint left in the air. The voice knows where it is. The page does not."

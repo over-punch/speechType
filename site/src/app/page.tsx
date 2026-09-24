@@ -14,7 +14,7 @@ export default function Home() {
 			<Hero
 				eyebrow="speech-driven emphasis"
 				title={[{ text: "Typography that" }, { text: "follows your voice.", italic: true, subtle: true }]}
-				install="@liiift-studio/speechtype"
+				install="@overpunch/speechtype"
 				github="https://github.com/Liiift-Studio/speechType"
 				tech={["TypeScript", "Zero dependencies", "React + Vanilla JS"]}
 			>
@@ -63,7 +63,7 @@ export default function Home() {
 				<div className="flex flex-col gap-8 text-sm">
 					<div className="flex flex-col gap-3">
 						<p className="text-muted">Drop-in component</p>
-						<CodeBlock code={`import { SpeechTypeText, startSpeechType } from '@liiift-studio/speechtype'
+						<CodeBlock code={`import { SpeechTypeText, startSpeechType } from '@overpunch/speechtype'
 import { useRef, useState } from 'react'
 
 // Drive activeWordIndex via startSpeechType or your own state
@@ -77,7 +77,7 @@ const ref = useRef<HTMLParagraphElement>(null)
 					</div>
 					<div className="flex flex-col gap-3">
 						<p className="text-muted">Start speech synthesis and sync emphasis</p>
-						<CodeBlock code={`import { startSpeechType } from '@liiift-studio/speechtype'
+						<CodeBlock code={`import { startSpeechType } from '@overpunch/speechtype'
 
 const el = document.querySelector('p')
 const stop = startSpeechType(el, { rate: 0.9, activeWeight: 700 })
@@ -87,7 +87,7 @@ const stop = startSpeechType(el, { rate: 0.9, activeWeight: 700 })
 					</div>
 					<div className="flex flex-col gap-3">
 						<p className="text-muted">Hook — manual control with your own active index</p>
-						<CodeBlock code={`import { useSpeechType } from '@liiift-studio/speechtype'
+						<CodeBlock code={`import { useSpeechType } from '@overpunch/speechtype'
 import { useRef } from 'react'
 
 // Inside a React component:
@@ -117,7 +117,7 @@ return <p ref={ref}>Every word spoken carries its own weight.</p>`} />
 				</div>
 			</section>
 
-			<PortsSection npm="@liiift-studio/speechtype" bundle="speechtype" attr="data-speechtype" repo="Liiift-Studio/SpeechType" />
+			<PortsSection npm="@overpunch/speechtype" bundle="speechtype" attr="data-speechtype" repo="Liiift-Studio/SpeechType" />
 
 			<SiteFooter current="speechType" npmVersion={version} siteVersion={siteVersion} />
 

@@ -1,12 +1,12 @@
 # speechType
 
-[![npm](https://img.shields.io/npm/v/%40liiift-studio%2Fspeechtype.svg)](https://www.npmjs.com/package/@liiift-studio/speechtype) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![part of liiift type-tools](https://img.shields.io/badge/liiift-type--tools-blueviolet)](https://github.com/Liiift-Studio/type-tools)
+[![npm](https://img.shields.io/npm/v/%40liiift-studio%2Fspeechtype.svg)](https://www.npmjs.com/package/@overpunch/speechtype) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![part of liiift type-tools](https://img.shields.io/badge/liiift-type--tools-blueviolet)](https://github.com/Liiift-Studio/type-tools)
 
 Typography that follows your voice — per-word typographic emphasis synced to Web Speech API boundary events. Each spoken word gets wider tracking, heavier weight, and larger optical size; the rest of the text recedes. A read-along effect grounded in typographic logic, not arbitrary highlight colours.
 
 ![speechType emphasising each word of a paragraph in turn as it is spoken aloud — the active word grows bolder, wider-tracked, and larger in optical size while the surrounding text fades back](https://raw.githubusercontent.com/Liiift-Studio/speechType/main/assets/speechtype-demo.gif?v=1)
 
-**[speechtype.vercel.app](https://speechtype.vercel.app)** · [npm](https://www.npmjs.com/package/@liiift-studio/speechtype) · [GitHub](https://github.com/Liiift-Studio/speechType)
+**[speechtype.vercel.app](https://speechtype.vercel.app)** · [npm](https://www.npmjs.com/package/@overpunch/speechtype) · [GitHub](https://github.com/Liiift-Studio/speechType)
 
 TypeScript · Zero dependencies · React + Vanilla JS
 
@@ -19,7 +19,7 @@ TypeScript · Zero dependencies · React + Vanilla JS
 ## Install
 
 ```bash
-npm install @liiift-studio/speechtype
+npm install @overpunch/speechtype
 ```
 
 ---
@@ -36,7 +36,7 @@ npm install @liiift-studio/speechtype
 
 ```tsx
 "use client"
-import { SpeechTypeText } from '@liiift-studio/speechtype'
+import { SpeechTypeText } from '@overpunch/speechtype'
 import { useState, useCallback } from 'react'
 
 const TEXT = 'The quick brown fox jumps over the lazy dog.'
@@ -74,7 +74,7 @@ For a simpler setup, skip `SpeechTypeText` and let `startSpeechType` manage ever
 ```tsx
 "use client"
 import { useRef } from 'react'
-import { startSpeechType, removeSpeechType } from '@liiift-studio/speechtype'
+import { startSpeechType, removeSpeechType } from '@overpunch/speechtype'
 
 export default function Demo() {
   const ref = useRef<HTMLParagraphElement>(null)
@@ -110,7 +110,7 @@ export default function Demo() {
 
 ```tsx
 "use client"
-import { useSpeechType } from '@liiift-studio/speechtype'
+import { useSpeechType } from '@overpunch/speechtype'
 import { useRef, useState, useCallback } from 'react'
 
 export default function Demo() {
@@ -128,7 +128,7 @@ export default function Demo() {
 `startSpeechType` is the all-in-one entry point for vanilla use. It wraps the words in spans, starts the Web Speech API, updates the emphasis on each boundary event, and returns a `stop` function.
 
 ```ts
-import { startSpeechType, removeSpeechType } from '@liiift-studio/speechtype'
+import { startSpeechType, removeSpeechType } from '@overpunch/speechtype'
 
 const el = document.querySelector('p')
 const stop = startSpeechType(el, {
@@ -145,7 +145,7 @@ removeSpeechType(el)
 For more control, use the lower-level functions:
 
 ```ts
-import { prepareSpeechType, applySpeechType, removeSpeechType } from '@liiift-studio/speechtype'
+import { prepareSpeechType, applySpeechType, removeSpeechType } from '@overpunch/speechtype'
 
 const el = document.querySelector('p')
 prepareSpeechType(el)               // wraps each word in a span
@@ -159,7 +159,7 @@ removeSpeechType(el)                // restore original HTML
 ### TypeScript
 
 ```ts
-import type { SpeechTypeOptions } from '@liiift-studio/speechtype'
+import type { SpeechTypeOptions } from '@overpunch/speechtype'
 
 const opts: SpeechTypeOptions = {
   activeTracking: 0.08,
@@ -244,7 +244,7 @@ Two trade-offs to design around:
 
 ```tsx
 "use client"
-import { SpeechTypeText } from '@liiift-studio/speechtype'
+import { SpeechTypeText } from '@overpunch/speechtype'
 ```
 
 ---
