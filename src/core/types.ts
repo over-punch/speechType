@@ -58,6 +58,15 @@ export interface SpeechTypeOptions {
 	 * Called when speech synthesis is unavailable in the current browser.
 	 * Used only by startSpeechType.
 	 */
+	/**
+	 * Language of the speech (BCP 47, e.g. 'ja'). Default: the element's own `lang` (nearest ancestor),
+	 * else the document's. A voice for that language is chosen when the browser has one.
+	 */
+	lang?: string
+	/** Voice to use: a SpeechSynthesisVoice, or a voice name / voiceURI. Default: the language's voice. */
+	voice?: SpeechSynthesisVoice | string
+	/** Called when a run ends: speech finished, stopped, cancelled by a newer run, or failed (after onError). */
+	onEnd?: () => void
 	onUnsupported?: () => void
 	/**
 	 * Called when a real speech error occurs (any error code other than "interrupted",

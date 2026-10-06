@@ -156,11 +156,11 @@ describe('removeSpeechType', () => {
 		expect(el.querySelector('.st-word')).toBeNull()
 	})
 
-	it('flattens inline markup during prepareSpeechType — em content becomes plain text word span', () => {
+	it('keeps inline markup during prepareSpeechType — words inside <em> are wrapped in place', () => {
 		const el = makeEl('Hello <em>world</em>')
 		prepareSpeechType(el)
-		// The <em> should be gone; both words should be wrapped as flat spans
-		expect(el.querySelector('em')).toBeNull()
+		// The <em> is kept; both words are wrapped
+		expect(el.querySelector('em')?.textContent).toBe('world')
 		const spans = el.querySelectorAll('.st-word')
 		expect(spans.length).toBe(2)
 		expect(spans[0].textContent).toBe('Hello')
@@ -383,5 +383,77 @@ describe('SSR safety', () => {
 			// Always restore window so subsequent tests are not broken
 			globalThis.window = origWindow
 		}
+	})
+})
+
+// ─── Review fixes (2026-10) ──────────────────────────────────────────────────
+
+describe('review fixes', () => {
+	/** A connected element. */
+	function attached(html: string): HTMLElement {
+		const el = document.createElement('p')
+		el.innerHTML = html
+		document.body.appendChild(el)
+		return el
+	}
+
+	it('keeps escaped text as text (no HTML injection)', () => {
+		const el = attached('Comment: &lt;img src=x onerror="window.pwned=1"&gt; nice')
+		prepareSpeechType(el)
+		expect(el.querySelector('img')).toBeNull()
+		expect(el.textContent).toBe('Comment: <img src=x onerror="window.pwned=1"> nice')
+	})
+
+	it('keeps markup and listeners, and the text readable (no aria-hidden, no live region)', () => {
+		const el = attached('Read <a href="#t" id="L">the terms</a><br>now')
+		let clicks = 0
+		el.querySelector('a')!.addEventListener('click', (e) => { e.preventDefault(); clicks++ })
+		const original = el.innerHTML
+		prepareSpeechType(el)
+		el.querySelector('a')!.click()
+		expect(clicks).toBe(1)
+		expect(el.querySelectorAll('[aria-hidden]').length).toBe(0)
+		expect(el.querySelector('[data-st-live]')).toBeNull()
+		expect(el.querySelector('br')).not.toBeNull()
+		expect(getCleanHTML(el)).toBe(original)
+		removeSpeechType(el)
+		expect(el.innerHTML).toBe(original)
+	})
+
+	it('does not speak hidden text or styles, and keeps words apart across <br>', () => {
+		const el = attached('alpha<br>beta <span hidden>secret</span><span aria-hidden="true">deco</span><style>.x{}</style> gamma')
+		startSpeechType(el)
+		const Utterance = SpeechSynthesisUtterance as unknown as { mock: { calls: string[][] } }
+		expect(Utterance.mock.calls.at(-1)![0]).toBe('alpha beta gamma')
+	})
+
+	it('a word split by markup is one spoken word', () => {
+		const el = attached('Split<em>ting</em> here')
+		startSpeechType(el)
+		const Utterance = SpeechSynthesisUtterance as unknown as { mock: { calls: string[][] } }
+		expect(Utterance.mock.calls.at(-1)![0]).toBe('Splitting here')
+	})
+
+	it("a stale stop() doesn't cancel another element's speech", () => {
+		const a = attached('first text')
+		const b = attached('second text')
+		const stopA = startSpeechType(a)
+		startSpeechType(b)
+		const cancel = window.speechSynthesis.cancel as unknown as { mock: { calls: unknown[] } }
+		const before = cancel.mock.calls.length
+		stopA()
+		expect(cancel.mock.calls.length).toBe(before)
+	})
+
+	it("speaks in the element's language and reports the end", () => {
+		const el = attached('こんにちは')
+		el.lang = 'ja'
+		let ended = 0
+		startSpeechType(el, { onEnd: () => ended++ })
+		const Utterance = SpeechSynthesisUtterance as unknown as { mock: { results: { value: { lang?: string; onend?: () => void } }[] } }
+		const u = Utterance.mock.results.at(-1)!.value
+		expect(u.lang).toBe('ja')
+		u.onend?.()
+		expect(ended).toBe(1)
 	})
 })
