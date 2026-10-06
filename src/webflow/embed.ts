@@ -1,6 +1,6 @@
 // speechType/src/webflow/embed.ts — zero-config browser bundle for Webflow Custom Code Embed.
 // Auto-initialises speechType on any element marked with [data-speechtype]: wraps its words
-// (prepareSpeechType) and wires a click-to-speak toggle. Exposes a small window.SpeechType API.
+// (prepareSpeechType) and wires a click- and keyboard-operable speak toggle. Exposes a small window.SpeechType API.
 // Speech synthesis needs a user gesture, so the effect starts on click (or via SpeechType.speak),
 // never on load.
 import { prepareSpeechType, startSpeechType, removeSpeechType } from '../core/adjust'
@@ -16,41 +16,40 @@ const CLICK_DISABLED = 'false'
 interface Instance {
 	/** Stop function returned by startSpeechType while speaking, else null. */
 	stop: (() => void) | null
+	/** Whether this element's speech is running (speech that ended or errored counts as stopped). */
+	speaking: boolean
 	/** Click handler wired for click-to-speak, so destroy() can remove it. null if disabled. */
 	clickHandler: ((e: MouseEvent) => void) | null
+	/** Enter/Space handler for keyboard users. null if disabled. */
+	keyHandler: ((e: KeyboardEvent) => void) | null
+	/** tabindex, role and aria-pressed before init, restored by destroy() */
+	saved: { tabIndex: string | null; role: string | null; pressed: string | null }
 }
 
 /** Tracks live instances keyed by their element — WeakMap so removed nodes are GC'd. */
 const INSTANCES = new WeakMap<HTMLElement, Instance>()
 
 /**
- * Read speechType options from an element's data-* attributes.
- * Unset attributes fall through to the library defaults.
- *
- * Supported attributes:
- *   data-st-tracking          — activeTracking, letter-spacing on the active word in em
- *   data-st-weight            — activeWeight, wght axis value on the active word
- *   data-st-opsz              — activeOpsz, opsz axis value on the active word
- *   data-st-inactive-opacity  — inactiveOpacity, opacity of non-active words
- *   data-st-transition        — transitionMs, CSS transition duration in ms
- *   data-st-rate              — speech rate (0.1–10)
- *   data-st-pitch             — speech pitch (0–2)
- *   data-st-volume            — speech volume (0–1)
+ * Read speechType options from an element's data-* attributes. Unset or invalid attributes fall through
+ * to the library defaults.
  *
  * @param el - The opted-in element
  */
 function readOptions(el: HTMLElement): SpeechTypeOptions {
 	const d = el.dataset
 	const opts: SpeechTypeOptions = {}
+	const num = (raw: string | undefined) => { if (raw === undefined) return undefined; const n = parseFloat(raw); return Number.isFinite(n) ? n : undefined }
 
-	if (d.stTracking !== undefined) { const n = parseFloat(d.stTracking); if (!isNaN(n)) opts.activeTracking = n }
-	if (d.stWeight !== undefined) { const n = parseFloat(d.stWeight); if (!isNaN(n)) opts.activeWeight = n }
-	if (d.stOpsz !== undefined) { const n = parseFloat(d.stOpsz); if (!isNaN(n)) opts.activeOpsz = n }
-	if (d.stInactiveOpacity !== undefined) { const n = parseFloat(d.stInactiveOpacity); if (!isNaN(n)) opts.inactiveOpacity = n }
-	if (d.stTransition !== undefined) { const n = parseFloat(d.stTransition); if (!isNaN(n)) opts.transitionMs = n }
-	if (d.stRate !== undefined) { const n = parseFloat(d.stRate); if (!isNaN(n)) opts.rate = n }
-	if (d.stPitch !== undefined) { const n = parseFloat(d.stPitch); if (!isNaN(n)) opts.pitch = n }
-	if (d.stVolume !== undefined) { const n = parseFloat(d.stVolume); if (!isNaN(n)) opts.volume = n }
+	opts.activeTracking = num(d.stTracking)
+	opts.activeWeight = num(d.stWeight)
+	opts.activeOpsz = num(d.stOpsz)
+	opts.inactiveOpacity = num(d.stInactiveOpacity)
+	opts.transitionMs = num(d.stTransition)
+	opts.rate = num(d.stRate)
+	opts.pitch = num(d.stPitch)
+	opts.volume = num(d.stVolume)
+	if (d.stVoice) opts.voice = d.stVoice
+	for (const k of Object.keys(opts) as (keyof SpeechTypeOptions)[]) if (opts[k] === undefined) delete opts[k]
 
 	// Warn once (rather than fail silently) when the browser lacks speech synthesis.
 	opts.onUnsupported = () => {
@@ -60,41 +59,53 @@ function readOptions(el: HTMLElement): SpeechTypeOptions {
 	return opts
 }
 
+/** Mark an instance stopped (and its toggle state). */
+function markStopped(el: HTMLElement, inst: Instance): void {
+	inst.speaking = false
+	inst.stop = null
+	if (inst.keyHandler) el.setAttribute('aria-pressed', 'false')
+}
+
 /**
- * Begin speaking an element, syncing per-word emphasis to speech boundaries.
- * If it is already speaking, this stops it first (a click toggles play/stop).
- * No-op if the element was never initialised.
+ * Speak an element, or stop it if it is speaking (a toggle).
  *
- * @param el - Element previously initialised by init()
+ * @param el - An initialised element
  */
 function speak(el: HTMLElement): void {
 	const inst = INSTANCES.get(el)
 	if (!inst) return
-	// Toggle: a second call while speaking stops instead of restarting.
-	if (inst.stop) {
+	if (inst.speaking) {
 		stop(el)
 		return
 	}
-	inst.stop = startSpeechType(el, readOptions(el))
+	const opts = readOptions(el)
+	let stopRun: (() => void) | null = null
+	// The run reports its own end (finished, stopped, taken over by another element, or failed).
+	opts.onEnd = () => { if (inst.stop === stopRun || stopRun === null) markStopped(el, inst) }
+	inst.speaking = true
+	if (inst.keyHandler) el.setAttribute('aria-pressed', 'true')
+	stopRun = startSpeechType(el, opts)
+	if (inst.speaking) inst.stop = stopRun
+	// No speech engine: nothing started, so nothing will end.
+	if (typeof speechSynthesis === 'undefined') markStopped(el, inst)
 }
 
 /**
- * Stop speech on an element and reset its words to neutral, leaving the markup wrapped
- * so it can be spoken again. No-op if the element is not speaking.
+ * Stop an element's speech (only its own).
  *
- * @param el - Element previously initialised by init()
+ * @param el - An initialised element
  */
 function stop(el: HTMLElement): void {
 	const inst = INSTANCES.get(el)
 	if (!inst || !inst.stop) return
 	inst.stop()
-	inst.stop = null
+	markStopped(el, inst)
 }
 
 /**
- * Restart speech on an element from the first word.
+ * Restart an element's speech from the beginning.
  *
- * @param el - Element previously initialised by init()
+ * @param el - An initialised element
  */
 function restart(el: HTMLElement): void {
 	stop(el)
@@ -102,31 +113,47 @@ function restart(el: HTMLElement): void {
 }
 
 /**
- * Initialise a single element: wrap its words and (unless data-st-click="false") wire a
- * click-to-speak toggle. Idempotent — re-initialising tears down the previous instance first.
+ * Initialise a single element: wrap its words and wire the click and keyboard toggle.
+ * Idempotent — re-initialising tears down the previous instance first.
  *
- * @param el - Element to prepare
+ * @param el - Element to initialise
  */
 function initElement(el: HTMLElement): void {
-	// Tear down any previous run so re-init doesn't double-wrap or double-wire.
 	destroy(el)
 
-	// Wrap words now so emphasis styling and the aria-live region are ready before the
-	// first gesture. Speech itself waits for a user action (browser gesture requirement).
+	// Wrap words now so emphasis styling is ready before the first gesture. Speech itself waits for a
+	// user action (browser gesture requirement).
 	prepareSpeechType(el, readOptions(el))
 
 	let clickHandler: ((e: MouseEvent) => void) | null = null
+	let keyHandler: ((e: KeyboardEvent) => void) | null = null
+	const saved = { tabIndex: el.getAttribute('tabindex'), role: el.getAttribute('role'), pressed: el.getAttribute('aria-pressed') }
 	if (el.dataset.stClick !== CLICK_DISABLED) {
-		clickHandler = () => speak(el)
+		// Clicks on links, buttons and fields inside the text do their own thing.
+		clickHandler = (e) => {
+			if ((e.target as Element | null)?.closest?.('a, button, input, select, textarea, label, summary')) return
+			speak(el)
+		}
 		el.addEventListener('click', clickHandler)
 		el.style.cursor = 'pointer'
+		// Keyboard users can start and stop it too: Enter or Space on the focused element. Text with links
+		// or fields inside keeps its own role, so those stay operable.
+		keyHandler = (e) => {
+			if (e.target !== el || (e.key !== 'Enter' && e.key !== ' ')) return
+			e.preventDefault()
+			speak(el)
+		}
+		el.addEventListener('keydown', keyHandler)
+		if (saved.tabIndex === null) el.setAttribute('tabindex', '0')
+		if (!saved.role && !el.querySelector('a, button, input, select, textarea')) el.setAttribute('role', 'button')
+		el.setAttribute('aria-pressed', 'false')
 	}
 
-	INSTANCES.set(el, { stop: null, clickHandler })
+	INSTANCES.set(el, { stop: null, speaking: false, clickHandler, keyHandler, saved })
 }
 
 /**
- * Stop and fully restore a single element if it has a live instance.
+ * Stop and restore a single element if it has a live instance.
  *
  * @param el - Element previously initialised
  */
@@ -137,6 +164,13 @@ function destroy(el: HTMLElement): void {
 	if (inst.clickHandler) {
 		el.removeEventListener('click', inst.clickHandler)
 		el.style.cursor = ''
+	}
+	if (inst.keyHandler) {
+		el.removeEventListener('keydown', inst.keyHandler)
+		const put = (name: string, value: string | null) => { if (value === null) el.removeAttribute(name); else el.setAttribute(name, value) }
+		put('tabindex', inst.saved.tabIndex)
+		put('role', inst.saved.role)
+		put('aria-pressed', inst.saved.pressed)
 	}
 	removeSpeechType(el)
 	INSTANCES.delete(el)
@@ -151,17 +185,25 @@ function init(root: ParentNode = document): void {
 	root.querySelectorAll<HTMLElement>(`[${OPT_IN_ATTR}]`).forEach(initElement)
 }
 
-/**
- * Auto-initialise once the DOM is parsed and web fonts have loaded.
- * Fonts must settle first: the active-word wght/opsz emphasis depends on final glyph
- * metrics, which shift when a web font swaps in.
- */
+/** Auto-initialise once the DOM is parsed and web fonts have loaded; set up elements added later. */
 function autoInit(): void {
 	const run = () => {
 		if (document.fonts?.ready) {
 			document.fonts.ready.then(() => init()).catch(() => init())
 		} else {
 			init()
+		}
+		if (typeof MutationObserver !== 'undefined' && document.body) {
+			new MutationObserver((records) => {
+				for (const rec of records) {
+					rec.addedNodes.forEach((n) => {
+						if (!(n instanceof HTMLElement) || !n.isConnected) return
+						const found = n.matches(`[${OPT_IN_ATTR}]`) ? [n] : []
+						n.querySelectorAll<HTMLElement>(`[${OPT_IN_ATTR}]`).forEach((el) => found.push(el))
+						for (const el of found) if (!INSTANCES.has(el)) initElement(el)
+					})
+				}
+			}).observe(document.body, { childList: true, subtree: true })
 		}
 	}
 	if (document.readyState === 'loading') {
