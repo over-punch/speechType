@@ -23,7 +23,7 @@ beforeEach(() => {
 		onend: null as unknown,
 		onerror: null as unknown,
 	}
-	vi.stubGlobal('SpeechSynthesisUtterance', vi.fn(() => mockUtterance))
+	vi.stubGlobal('SpeechSynthesisUtterance', vi.fn(function () { return mockUtterance }))   // a regular function: vitest 4 mocks called with `new` must be constructible
 	vi.stubGlobal('speechSynthesis', {
 		speak: vi.fn(),
 		cancel: vi.fn(),
