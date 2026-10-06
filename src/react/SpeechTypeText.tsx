@@ -1,7 +1,7 @@
 // speechType/src/react/SpeechTypeText.tsx — React component wrapper for speechType
 "use client"
 
-import { useRef, forwardRef, useImperativeHandle, type ElementType } from 'react'
+import React, { Children, isValidElement, useRef, forwardRef, useImperativeHandle, type ElementType } from 'react'
 import { useSpeechType } from './useSpeechType'
 import type { SpeechTypeOptions } from '../core/types'
 
@@ -24,6 +24,30 @@ interface SpeechTypeTextProps extends SpeechTypeOptions, HTMLForwardProps {
 	style?: React.CSSProperties
 	/** Class name forwarded to the rendered element */
 	className?: string
+}
+
+/**
+ * A string that changes whenever the rendered content of `children` changes: text, element types,
+ * keys and primitive props, walked recursively. Functions and objects are ignored.
+ */
+function childrenSignature(children: React.ReactNode): string {
+	const parts: string[] = []
+	const walk = (node: React.ReactNode) => {
+		Children.forEach(node, (child) => {
+			if (child === null || child === undefined || typeof child === 'boolean') return
+			if (typeof child === 'string' || typeof child === 'number') { parts.push(String(child)); return }
+			if (isValidElement(child)) {
+				const type = typeof child.type === 'string' ? child.type : ((child.type as { displayName?: string; name?: string }).displayName ?? (child.type as { name?: string }).name ?? 'C')
+				const props = child.props as Record<string, unknown>
+				const attrs = Object.keys(props).filter((k) => k !== 'children' && ['string', 'number', 'boolean'].includes(typeof props[k])).sort().map((k) => `${k}=${String(props[k])}`)
+				parts.push(`<${type}${child.key != null ? '#' + child.key : ''} ${attrs.join(' ')}>`)
+				walk(props.children as React.ReactNode)
+				parts.push(`</${type}>`)
+			}
+		})
+	}
+	walk(children)
+	return parts.join('\u0000')
 }
 
 /**
@@ -51,6 +75,9 @@ export const SpeechTypeText = forwardRef<HTMLElement, SpeechTypeTextProps>(
 			volume,
 			onUnsupported,
 			onError,
+			onEnd,
+			lang,
+			voice,
 			// Remaining props (aria-*, data-*, role, lang, etc.) are forwarded to the DOM element
 			...htmlProps
 		},
@@ -72,6 +99,9 @@ export const SpeechTypeText = forwardRef<HTMLElement, SpeechTypeTextProps>(
 			volume,
 			onUnsupported,
 			onError,
+			onEnd,
+			lang,
+			voice,
 		}
 
 		useSpeechType(innerRef, activeWordIndex, options)
@@ -83,7 +113,9 @@ export const SpeechTypeText = forwardRef<HTMLElement, SpeechTypeTextProps>(
 		>
 
 		return (
-			<El ref={innerRef} style={style} className={className} {...htmlProps}>
+			// The library wraps the element's words in place, so React can't patch new children into it.
+			// When the children or the tag change, remount the element (key) and prepare the fresh content.
+			<El key={`${typeof Tag === 'string' ? Tag : 'C'}|${childrenSignature(children)}`} ref={innerRef} style={style} className={className} lang={lang} {...htmlProps}>
 				{children}
 			</El>
 		)
