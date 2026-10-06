@@ -1,6 +1,6 @@
 {
 	"name": "@overpunch/speechtype",
-	"version": "1.0.11",
+	"version": "1.1.0",
 	"description": "Typography that follows your voice — per-word typographic emphasis synced to Web Speech API boundary events",
 	"type": "module",
 	"main": "dist/index.cjs",
