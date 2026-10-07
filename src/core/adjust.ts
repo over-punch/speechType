@@ -1,5 +1,6 @@
 // speechType/src/core/adjust.ts — wraps an element's words in place (keeping its markup, listeners and
 // accessibility) and emphasises each word as the Web Speech API speaks it, around the text's own style.
+// In 'highlight' mode nothing is wrapped: the spoken word is painted with the CSS Custom Highlight API.
 
 import { SPEECH_CLASSES } from './types'
 import type { SpeechTypeOptions } from './types'
@@ -14,6 +15,12 @@ const BREAK_TAGS = new Set(['BR', 'HR', 'P', 'DIV', 'LI', 'UL', 'OL', 'DL', 'DT'
 
 /** Scripts written without spaces between words: split into words with Intl.Segmenter. */
 const UNSPACED_SCRIPT = /[฀-໿က-႟ក-៿぀-ヿ㐀-䶿一-鿿豈-﫿]/
+
+/**
+ * Default opacity of the words not being spoken (0–1). 0.6 keeps black text on white at 5.7:1 and white on
+ * black at 7.4:1, above WCAG AA's 4.5:1; the earlier default, 0.45, gave 3.4:1 and 4.4:1.
+ */
+const DEFAULT_INACTIVE_OPACITY = 0.6
 
 /** Delay between cancelling earlier speech and speaking again (Chrome cancels a speak() in the same tick). */
 const RESPEAK_DELAY_MS = 80
@@ -62,6 +69,17 @@ interface Wrapped {
 	produced: Node[]
 }
 
+/** The CSS Custom Highlight registry (CSS.highlights) and constructor, or null where the browser has neither. */
+function highlightApi(): { registry: Map<string, Set<Range>>; create: () => Set<Range> } | null {
+	const css = (globalThis as unknown as { CSS?: { highlights?: Map<string, Set<Range>> } }).CSS
+	const Ctor = (globalThis as unknown as { Highlight?: new () => Set<Range> }).Highlight
+	if (!css?.highlights || typeof Ctor !== 'function') return null
+	return { registry: css.highlights, create: () => new Ctor() }
+}
+
+/** Default name of the custom highlight in 'highlight' mode: style it with ::highlight(speechtype). */
+const HIGHLIGHT_NAME = 'speechtype'
+
 /** Per-element state saved by prepareSpeechType. */
 interface SpeechState {
 	/** The element's markup before wrapping (what getCleanHTML returns) */
@@ -77,6 +95,31 @@ interface SpeechState {
 	/** The run currently speaking this element, if any */
 	run: Run | null
 	activeIndex: number
+	/** 'highlight' mode only: the text ranges of each word (a word split by markup has several). Null in 'spans' mode. */
+	ranges: Range[][] | null
+	/** 'highlight' mode only: the highlight's name, and the ranges this element has in it now */
+	highlightName: string
+	painted: Range[]
+}
+
+/** 'highlight' mode: put the ranges of word w (or none, for -1) into the named highlight, replacing this element's earlier ones. */
+function paint(state: SpeechState, w: number): void {
+	const api = highlightApi()
+	if (!api || !state.ranges) return
+	let highlight = api.registry.get(state.highlightName)
+	state.painted.forEach((r) => highlight?.delete(r))
+	// Ranges of elements that left the page without removeSpeechType would stay in the highlight for good: drop them.
+	if (highlight) Array.from(highlight).forEach((r) => { if (!r.startContainer.isConnected) highlight?.delete(r) })
+	state.painted = w >= 0 ? state.ranges[w] ?? [] : []
+	if (state.painted.length) {
+		if (!highlight) {
+			highlight = api.create()
+			api.registry.set(state.highlightName, highlight)
+		}
+		state.painted.forEach((r) => highlight?.add(r))
+	}
+	// Leave no empty highlight behind (other elements may share the name, so only delete when it is empty).
+	if (highlight && highlight.size === 0) api.registry.delete(state.highlightName)
 }
 
 /** Registry of per-element state, keyed by element reference. */
@@ -106,8 +149,11 @@ function unwrap(state: SpeechState): void {
  * are left alone (and not spoken). The text stays readable to screen readers. Idempotent — calling again
  * re-wraps from the original. Returns the word spans in document order.
  *
+ * With options.mode 'highlight' (and a browser that has the CSS Custom Highlight API) nothing is wrapped:
+ * the words are recorded as text ranges, the element's markup is not touched, and an empty array is returned.
+ *
  * @param el      - Element whose text will be wrapped
- * @param options - SpeechTypeOptions (transitionMs is used)
+ * @param options - SpeechTypeOptions (transitionMs, mode and highlightName are used)
  */
 export function prepareSpeechType(el: HTMLElement, options: SpeechTypeOptions = {}): HTMLElement[] {
 	if (typeof window === 'undefined' || !el) return []
@@ -115,9 +161,18 @@ export function prepareSpeechType(el: HTMLElement, options: SpeechTypeOptions = 
 	const existing = states.get(el)
 	if (existing) {
 		existing.run?.stop()
+		paint(existing, -1)
 		unwrap(existing)
 		states.delete(el)
 	}
+
+	if (options.mode !== undefined && options.mode !== 'spans' && options.mode !== 'highlight') {
+		warnOnce(`[speechType] mode must be 'spans' or 'highlight'; got ${String(options.mode)}, using 'spans'`)
+	}
+	const wantsHighlight = options.mode === 'highlight'
+	if (wantsHighlight && !highlightApi()) warnOnce("[speechType] mode 'highlight' needs the CSS Custom Highlight API, which this browser doesn't have; using 'spans'")
+	/** Word ranges in 'highlight' mode; null in 'spans' mode. */
+	const ranges: Range[][] | null = wantsHighlight && highlightApi() ? [] : null
 
 	const originalHTML = el.innerHTML
 	const wrapped: Wrapped[] = []
@@ -151,26 +206,42 @@ export function prepareSpeechType(el: HTMLElement, options: SpeechTypeOptions = 
 		if (!data || !node.parentNode) return
 		if (!/\S/.test(data)) { gap = true; return }
 		const produced: Node[] = []
-		for (const token of data.split(/(\s+)/)) {
-			if (!token) continue
-			if (/^\s+$/.test(token)) { produced.push(document.createTextNode(token)); gap = true; continue }
+		for (const match of data.matchAll(/\s+|\S+/g)) {
+			const token = match[0]
+			if (/^\s/.test(token)) {
+				if (!ranges) produced.push(document.createTextNode(token))
+				gap = true
+				continue
+			}
 			const pieces = wordSegmenter && UNSPACED_SCRIPT.test(token) ? Array.from(wordSegmenter.segment(token), (s) => s.segment) : [token]
+			let offset = match.index
 			pieces.forEach((piece, k) => {
 				if (gap || k > 0) {
 					if (text) text += ' '
 					word++
 					wordStart[word] = text.length
+					if (ranges) ranges[word] = []
 				}
 				gap = false
-				const span = document.createElement('span')
-				span.className = SPEECH_CLASSES.word
-				span.textContent = piece
-				produced.push(span)
-				wordSpans.push(span)
-				wordOf.push(word)
+				if (ranges) {
+					// 'highlight' mode: remember where the word is; leave the text node alone.
+					const range = document.createRange()
+					range.setStart(node, offset)
+					range.setEnd(node, offset + piece.length)
+					ranges[word].push(range)
+				} else {
+					const span = document.createElement('span')
+					span.className = SPEECH_CLASSES.word
+					span.textContent = piece
+					produced.push(span)
+					wordSpans.push(span)
+					wordOf.push(word)
+				}
+				offset += piece.length
 				text += piece
 			})
 		}
+		if (ranges) return
 		const fragment = document.createDocumentFragment()
 		produced.forEach((n) => fragment.appendChild(n))
 		node.parentNode.replaceChild(fragment, node)
@@ -186,7 +257,8 @@ export function prepareSpeechType(el: HTMLElement, options: SpeechTypeOptions = 
 		})
 	}
 
-	states.set(el, { originalHTML, wrapped, wordSpans, wordOf, text, wordStart, run: null, activeIndex: -1 })
+	const highlightName = typeof options.highlightName === 'string' && options.highlightName ? options.highlightName : HIGHLIGHT_NAME
+	states.set(el, { originalHTML, wrapped, wordSpans, wordOf, text, wordStart, run: null, activeIndex: -1, ranges, highlightName, painted: [] })
 	return wordSpans
 }
 
@@ -227,16 +299,25 @@ function emphasis(span: HTMLElement, options: SpeechTypeOptions): { fvs: string;
  * others. Pass -1 to reset all words to neutral. The emphasis is a heavier weight, larger optical size and
  * wider tracking around the text's own values (explicit options are absolute).
  *
+ * In 'highlight' mode there are no spans: activeIndex is the word's number, and the word is painted with the
+ * element's custom highlight (::highlight(speechtype) unless highlightName was set). Nothing else is styled.
+ *
  * @param el          - Element previously prepared by prepareSpeechType
- * @param activeIndex - Index of the word span to emphasise, -1 for none
+ * @param activeIndex - Index of the word span to emphasise ('highlight' mode: the word's number), -1 for none
  * @param options     - SpeechTypeOptions (merged with defaults)
  */
 export function applySpeechType(el: HTMLElement, activeIndex: number, options: SpeechTypeOptions = {}): void {
 	if (typeof window === 'undefined') return
 	const state = states.get(el)
 	if (!state) return
+	if (state.ranges) {
+		const w = Number.isInteger(activeIndex) && activeIndex >= 0 && activeIndex < state.ranges.length ? activeIndex : -1
+		state.activeIndex = w
+		paint(state, w)
+		return
+	}
 	const index = Number.isInteger(activeIndex) && activeIndex >= 0 && activeIndex < state.wordSpans.length ? activeIndex : -1
-	const inactiveOpacity = numberIn(options.inactiveOpacity, 0.45, 0, 1, 'inactiveOpacity')
+	const inactiveOpacity = numberIn(options.inactiveOpacity, DEFAULT_INACTIVE_OPACITY, 0, 1, 'inactiveOpacity')
 	const activeWord = index >= 0 ? state.wordOf[index] : -1
 	state.activeIndex = index
 
@@ -348,6 +429,10 @@ export function startSpeechType(el: HTMLElement, options: SpeechTypeOptions = {}
 		for (let i = 0; i < state.wordStart.length; i++) {
 			if (state.wordStart[i] <= e.charIndex) w = i
 			else break
+		}
+		if (state.ranges) {
+			if (w !== -1) applySpeechType(el, w, options)
+			return
 		}
 		const span = state.wordOf.indexOf(w)
 		if (span !== -1) applySpeechType(el, span, options)

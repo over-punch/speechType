@@ -49,6 +49,9 @@ function readOptions(el: HTMLElement): SpeechTypeOptions {
 	opts.pitch = num(d.stPitch)
 	opts.volume = num(d.stVolume)
 	if (d.stVoice) opts.voice = d.stVoice
+	// data-st-mode="highlight": mark the spoken word with a CSS custom highlight and wrap nothing.
+	if (d.stMode === 'highlight' || d.stMode === 'spans') opts.mode = d.stMode
+	if (d.stHighlightName) opts.highlightName = d.stHighlightName
 	for (const k of Object.keys(opts) as (keyof SpeechTypeOptions)[]) if (opts[k] === undefined) delete opts[k]
 
 	// Warn once (rather than fail silently) when the browser lacks speech synthesis.

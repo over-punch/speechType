@@ -23,31 +23,42 @@ export const SPEECH_CLASSES = {
  * the values are within the wght/opsz axis ranges supported by your font — out-of-range
  * values may cause some engines to silently ignore the entire declaration.
  *
- * inactiveOpacity: ensure the resulting contrast ratio remains at least 4.5:1 against
- * your background colour to meet WCAG AA. The default of 0.45 may fail this threshold
- * depending on your foreground/background pairing.
+ * inactiveOpacity: dimming lowers contrast for as long as a word is active. The default of 0.6 keeps
+ * black on white at 5.7:1 (WCAG AA asks for 4.5:1); colours with less contrast to start with need a
+ * higher value, or 1 for no dimming. Check the result against your own colours.
  */
 export interface SpeechTypeOptions {
 	/** Letter-spacing on the active (currently spoken) word in em. Default: 0.06 */
 	activeTracking?: number
 	/**
-	 * wght axis value on the active word. Default: 700.
+	 * wght axis value on the active word. Default: the word's own weight plus 300 (400 → 700), capped at 1000.
 	 * Must be within the font's supported wght axis range (e.g. 100–900 for most variable fonts).
 	 */
 	activeWeight?: number
 	/**
-	 * opsz axis value on the active word. Default: 24.
+	 * opsz axis value on the active word. Default: 1.5× the word's own optical size (its font size in px).
 	 * Must be within the font's supported opsz axis range (e.g. 6–72 for many variable fonts).
 	 */
 	activeOpsz?: number
 	/**
-	 * Opacity of inactive (not currently spoken) words. Default: 0.45.
-	 * Values below ~0.5 may reduce contrast below WCAG AA (4.5:1) depending on your colours.
-	 * Minimum recommended value: 0.3.
+	 * Opacity of inactive (not currently spoken) words. Default: 0.6 (it was 0.45 up to 1.1.0, which put
+	 * black-on-white text at 3.4:1, under WCAG AA's 4.5:1). Set 1 for no dimming.
 	 */
 	inactiveOpacity?: number
 	/** CSS transition duration in ms for style changes. Default: 80 */
 	transitionMs?: number
+	/**
+	 * How the spoken word is marked. Default: 'spans'.
+	 * - 'spans': each word is wrapped in a span and restyled (weight, optical size, tracking, opacity).
+	 * - 'highlight': nothing is wrapped and the element's markup is not touched. The spoken word is painted
+	 *   with the CSS Custom Highlight API; style it with `::highlight(speechtype) { … }`. Highlights can only
+	 *   change colour, background, text decoration and text shadow, so the visual options above do nothing
+	 *   and the text never reflows. In this mode applySpeechType's index is the word's number.
+	 *   Falls back to 'spans' (with a console warning) where the API is missing.
+	 */
+	mode?: 'spans' | 'highlight'
+	/** Name of the custom highlight in 'highlight' mode. Default: 'speechtype' */
+	highlightName?: string
 	/** Speech rate (0.1–10). Used only by startSpeechType. Default: 0.9 */
 	rate?: number
 	/** Speech pitch (0–2). Used only by startSpeechType. Default: 1 */

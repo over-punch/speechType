@@ -119,6 +119,8 @@ describe('applySpeechType', () => {
 		const spans = el.querySelectorAll<HTMLElement>(`.${SPEECH_CLASSES.word}`)
 		expect(spans[0].style.letterSpacing).toBe('0.06em')
 		expect(spans[0].style.fontVariationSettings).toContain('700')
+		// Inactive words dim to 0.6 by default: black on white stays above WCAG AA (4.5:1).
+		expect(spans[1].style.opacity).toBe('0.6')
 	})
 
 	it('is a no-op if prepareSpeechType was never called', () => {
@@ -455,5 +457,146 @@ describe('review fixes', () => {
 		expect(u.lang).toBe('ja')
 		u.onend?.()
 		expect(ended).toBe(1)
+	})
+})
+
+// ─── highlight mode ───────────────────────────────────────────────────────────
+
+describe("mode: 'highlight' (CSS Custom Highlight API)", () => {
+	/** The stubbed highlight registry (CSS.highlights). */
+	let registry: Map<string, Set<Range>>
+
+	beforeEach(() => {
+		registry = new Map()
+		vi.stubGlobal('Highlight', class extends Set<Range> {})
+		vi.stubGlobal('CSS', { highlights: registry })
+	})
+
+	/** The text currently painted by the named highlight. */
+	const painted = (name = 'speechtype') => Array.from(registry.get(name) ?? [], (r) => r.toString())
+
+	it('leaves the markup untouched and returns no spans', () => {
+		const html = 'Read <a href="/terms">the terms</a> before you sign.'
+		const el = makeEl(html)
+		document.body.appendChild(el)
+		const spans = prepareSpeechType(el, { mode: 'highlight' })
+		expect(spans).toEqual([])
+		expect(el.innerHTML).toBe(html)
+		expect(el.querySelectorAll('span').length).toBe(0)
+		expect(el.querySelector('[aria-hidden]')).toBeNull()
+		expect(getCleanHTML(el)).toBe(html)
+		el.remove()
+	})
+
+	it('paints the word at the given word number and nothing else', () => {
+		const el = makeEl('Read <a href="/terms">the terms</a> before you sign.')
+		document.body.appendChild(el)
+		prepareSpeechType(el, { mode: 'highlight' })
+		applySpeechType(el, 2)
+		expect(painted()).toEqual(['terms'])
+		applySpeechType(el, 0)
+		expect(painted()).toEqual(['Read'])
+		// No inline styles or attributes are written anywhere.
+		expect(el.innerHTML).toBe('Read <a href="/terms">the terms</a> before you sign.')
+		el.remove()
+	})
+
+	it('a word split by markup is painted as one word with two ranges', () => {
+		const el = makeEl('Typo<em>graphy</em> matters')
+		document.body.appendChild(el)
+		prepareSpeechType(el, { mode: 'highlight' })
+		applySpeechType(el, 0)
+		expect(painted()).toEqual(['Typo', 'graphy'])
+		el.remove()
+	})
+
+	it('clearing, removing and re-preparing leave no highlight behind', () => {
+		const el = makeEl('One two three')
+		document.body.appendChild(el)
+		prepareSpeechType(el, { mode: 'highlight' })
+		applySpeechType(el, 1)
+		expect(registry.has('speechtype')).toBe(true)
+		applySpeechType(el, -1)
+		expect(registry.has('speechtype')).toBe(false)
+		applySpeechType(el, 2)
+		removeSpeechType(el)
+		expect(registry.has('speechtype')).toBe(false)
+		expect(el.innerHTML).toBe('One two three')
+		// Back to spans afterwards: the earlier mode leaves nothing behind.
+		applySpeechType(el, 0)
+		prepareSpeechType(el, { mode: 'highlight' })
+		applySpeechType(el, 0)
+		expect(prepareSpeechType(el).length).toBe(3)
+		expect(registry.has('speechtype')).toBe(false)
+		el.remove()
+	})
+
+	it('two elements share one highlight without clearing each other', () => {
+		const a = makeEl('Alpha beta')
+		const b = makeEl('Gamma delta')
+		document.body.append(a, b)
+		prepareSpeechType(a, { mode: 'highlight' })
+		prepareSpeechType(b, { mode: 'highlight' })
+		applySpeechType(a, 0)
+		applySpeechType(b, 1)
+		expect(painted().sort()).toEqual(['Alpha', 'delta'])
+		applySpeechType(a, -1)
+		expect(painted()).toEqual(['delta'])
+		a.remove(); b.remove()
+	})
+
+	it("drops the ranges of an element that left the page without removeSpeechType", () => {
+		const gone = makeEl('Old text')
+		const kept = makeEl('New text')
+		document.body.append(gone, kept)
+		prepareSpeechType(gone, { mode: 'highlight' })
+		prepareSpeechType(kept, { mode: 'highlight' })
+		applySpeechType(gone, 0)
+		gone.remove()
+		applySpeechType(kept, 1)
+		expect(painted()).toEqual(['text'])
+		applySpeechType(kept, -1)
+		expect(registry.has('speechtype')).toBe(false)
+		kept.remove()
+	})
+
+	it('uses a custom highlight name', () => {
+		const el = makeEl('One two')
+		document.body.appendChild(el)
+		prepareSpeechType(el, { mode: 'highlight', highlightName: 'reading' })
+		applySpeechType(el, 1)
+		expect(painted('reading')).toEqual(['two'])
+		expect(registry.has('speechtype')).toBe(false)
+		el.remove()
+	})
+
+	it('a speech boundary paints the spoken word', () => {
+		const el = makeEl('Hello <strong>brave</strong> world')
+		document.body.appendChild(el)
+		startSpeechType(el, { mode: 'highlight' })
+		const utterance = (SpeechSynthesisUtterance as unknown as { mock: { results: { value: { onboundary: (e: unknown) => void; onend: () => void } }[] } }).mock.results.slice(-1)[0].value
+		utterance.onboundary({ name: 'word', charIndex: 6 })
+		expect(painted()).toEqual(['brave'])
+		expect(el.innerHTML).toBe('Hello <strong>brave</strong> world')
+		utterance.onend()
+		expect(registry.has('speechtype')).toBe(false)
+		el.remove()
+	})
+
+	it('falls back to spans, with a warning, where the API is missing', () => {
+		vi.stubGlobal('CSS', {})
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+		const el = makeEl('One two')
+		const spans = prepareSpeechType(el, { mode: 'highlight' })
+		expect(spans.length).toBe(2)
+		expect(warn).toHaveBeenCalled()
+		warn.mockRestore()
+	})
+
+	it("default mode is 'spans': the published behaviour is unchanged", () => {
+		const el = makeEl('Read <a href="/terms">the terms</a> now')
+		prepareSpeechType(el)
+		expect(el.innerHTML).toBe('<span class="st-word" style="transition: font-variation-settings 80ms ease, letter-spacing 80ms ease, opacity 80ms ease;">Read</span> <a href="/terms"><span class="st-word" style="transition: font-variation-settings 80ms ease, letter-spacing 80ms ease, opacity 80ms ease;">the</span> <span class="st-word" style="transition: font-variation-settings 80ms ease, letter-spacing 80ms ease, opacity 80ms ease;">terms</span></a> <span class="st-word" style="transition: font-variation-settings 80ms ease, letter-spacing 80ms ease, opacity 80ms ease;">now</span>')
+		expect(registry.size).toBe(0)
 	})
 })

@@ -58,7 +58,7 @@ export default function Demo() {
 
   return (
     <>
-      <SpeechTypeText activeWordIndex={activeWordIndex} activeWeight={700} inactiveOpacity={0.45}>
+      <SpeechTypeText activeWordIndex={activeWordIndex} activeWeight={700} inactiveOpacity={0.6}>
         {TEXT}
       </SpeechTypeText>
       <button onClick={handleSpeak}>Speak</button>
@@ -189,7 +189,9 @@ Visual options apply everywhere; speech options are only read by `startSpeechTyp
 | `activeTracking` | `number` | `0.06` | visual | Letter-spacing on the active (currently spoken) word, in em |
 | `activeWeight` | `number` | +300 | visual | `wght` axis value on the active word. Unset, the word's own weight plus 300 (400 → 700, 700 → 1000). Must sit within the font's `wght` axis range |
 | `activeOpsz` | `number` | ×1.5 | visual | `opsz` axis value on the active word. Unset, 1.5× the word's own optical size (its font size in px, so 16px text → 24). Must sit within the font's `opsz` axis range |
-| `inactiveOpacity` | `number` | `0.45` | visual | Opacity of inactive (not currently spoken) words. Keep ≥ 0.3 for legibility — values below ~0.5 may drop contrast under WCAG AA depending on your colours |
+| `inactiveOpacity` | `number` | `0.6` | visual | Opacity of inactive (not currently spoken) words. `0.6` keeps black on white at 5.7:1 (WCAG AA asks for 4.5:1); colours with less contrast need more, and `1` turns dimming off. It was `0.45` up to 1.1.0 |
+| `mode` | `'spans' \| 'highlight'` | `'spans'` | visual | **Unreleased (after 1.1.0).** `'highlight'` wraps nothing and paints the spoken word with the CSS Custom Highlight API; see [Highlight mode](#highlight-mode-no-spans) |
+| `highlightName` | `string` | `'speechtype'` | visual | **Unreleased.** Name of the custom highlight in `'highlight'` mode |
 | `transitionMs` | `number` | `80` | visual | CSS transition duration in ms for style changes |
 | `rate` | `number` | `0.9` | speech | Speech rate (0.1–10). Passed to `SpeechSynthesisUtterance` |
 | `pitch` | `number` | `1` | speech | Speech pitch (0–2). Passed to `SpeechSynthesisUtterance` |
@@ -221,16 +223,42 @@ startSpeechType(el, {
 
 ---
 
+## Highlight mode (no spans)
+
+> **Unreleased:** in the repository after 1.1.0, not on npm yet.
+
+```ts
+startSpeechType(el, { mode: 'highlight' })
+```
+
+```css
+::highlight(speechtype) { background-color: #fde68a; color: #111; }
+```
+
+In this mode nothing is wrapped and the element's markup is not touched. Each word is recorded as a text range, and the spoken word is painted with the [CSS Custom Highlight API](https://www.w3.org/TR/css-highlight-api-1/). What that buys and costs:
+
+- The element's HTML, its accessibility tree, selection and find-in-page are the same as without speechType.
+- Highlights can only change colour, background, text decoration and text shadow, so the weight, optical-size, tracking and opacity options do nothing, and the text can't reflow.
+- `applySpeechType(el, n)` takes the word's number (there are no spans to index), and `prepareSpeechType` returns an empty array.
+- Browser support (MDN compatibility data, October 2026): Chrome and Edge 105, Safari 17.2, Firefox 140. Elsewhere speechType warns once and uses spans.
+- Give removed elements to `removeSpeechType` (the React hook does). Ranges of elements that left the page are also dropped the next time a word is marked.
+
+---
+
 ## Accessibility
 
-speechType is built for read-along contexts, so it ships screen-reader support rather than leaving it to you:
+What speechType does, and what we have and haven't checked:
 
-- The text stays exactly as it was for screen readers: words are wrapped in plain spans (nothing is hidden, nothing is announced on top of the speech), links and headings keep their names, and the active word gets `aria-current="true"`.
-- All emphasis is plain CSS (`font-variation-settings`, `letter-spacing`, `opacity`) — no content is duplicated or reordered.
+- **The text stays real text.** In the default mode words are wrapped in plain spans: nothing is hidden, nothing is announced on top of the speech, no `aria-label` is added, and links and headings keep their names. The spoken word gets `aria-current="true"`. In highlight mode nothing is added at all.
+- **Checked in Chrome's accessibility tree, not with a screen reader.** Roles and names match the unwrapped element (Chromium 149, October 2026). We have not run VoiceOver, NVDA, JAWS or TalkBack. A span per word does put the text into more, smaller pieces in the tree, and a [2018 report](https://axesslab.com/text-splitting/) found VoiceOver on iOS stopping at inline elements inside a link. If that matters to you, use highlight mode.
+- **Before 1.1.0 this was wrong.** Versions up to 1.0.11 put `aria-hidden` on every word and announced each word through a live region on top of the audio. Upgrade.
+- All emphasis is plain CSS (`font-variation-settings`, `letter-spacing`, `opacity`); no content is duplicated or reordered.
+- speechType reads text aloud with the browser's speech synthesis. It is not a screen reader and doesn't replace one.
 
-Two trade-offs to design around:
+Trade-offs to design around:
 
-- **Contrast.** Inactive words fade to `inactiveOpacity` (default `0.45`), which *reduces* contrast. Keep it at `0.3` or higher and verify the result still meets WCAG AA (4.5:1) against your background — or raise it toward `1` if your audience needs maximum legibility.
+- **Contrast.** Inactive words fade to `inactiveOpacity` (default `0.6`) for as long as a word is active, which lowers their contrast: black on white drops to 5.7:1, and colours with less contrast to begin with can fall under WCAG AA's 4.5:1. Check your own colours, or set `1`.
+- **Reflow.** The emphasised word is wider, so a line can rewrap while it is spoken (see How it works). Highlight mode can't move text.
 - **The speech engine is shared.** A page has one `speechSynthesis`; starting speechType stops speech already playing.
 
 ---

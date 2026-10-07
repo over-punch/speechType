@@ -6,7 +6,7 @@ import { prepareSpeechType, applySpeechType, removeSpeechType } from '../core/ad
 import type { SpeechTypeOptions } from '../core/types'
 
 /**
- * Prepare word spans on mount (and again when the element or transitionMs changes) and apply emphasis for
+ * Prepare word spans on mount (and again when the element, transitionMs or mode changes) and apply emphasis for
  * activeWordIndex. Restores the element on unmount; speech is only cancelled if this element is speaking.
  *
  * @param ref             - Ref to the element containing text to highlight
@@ -18,7 +18,7 @@ export function useSpeechType(
 	activeWordIndex: number,
 	options?: SpeechTypeOptions,
 ): void {
-	const prepared = useRef<{ el: HTMLElement; transitionMs: unknown } | null>(null)
+	const prepared = useRef<{ el: HTMLElement; transitionMs: unknown; mode: unknown; highlightName: unknown } | null>(null)
 	const optionsRef = useRef(options)
 	optionsRef.current = options
 	// Visual options only (callbacks aren't serialisable and don't change the emphasis).
@@ -28,12 +28,12 @@ export function useSpeechType(
 	useEffect(() => {
 		const el = ref.current
 		const current = prepared.current
-		if (!current || current.el !== el || current.transitionMs !== options?.transitionMs) {
+		if (!current || current.el !== el || current.transitionMs !== options?.transitionMs || current.mode !== options?.mode || current.highlightName !== options?.highlightName) {
 			if (current && current.el !== el) removeSpeechType(current.el)
 			prepared.current = null
 			if (!el) return
 			prepareSpeechType(el, optionsRef.current)
-			prepared.current = { el, transitionMs: options?.transitionMs }
+			prepared.current = { el, transitionMs: options?.transitionMs, mode: options?.mode, highlightName: options?.highlightName }
 			applySpeechType(el, activeWordIndex, optionsRef.current)
 		}
 	})
