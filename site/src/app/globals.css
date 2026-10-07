@@ -11,3 +11,38 @@
 	--btn-bg: oklch(0.760 0.1000 144);
 	--panel: oklch(0.810 0.1600 144);
 }
+
+/* Split-text comparison (SplitCompare.tsx): Source Serif 4 has the kerning pairs and ligatures the measurement needs. */
+@font-face {
+	font-family: "Source Serif 4";
+	src: url("/fonts/SourceSerif4.woff2") format("woff2");
+	font-weight: 200 900;
+	font-display: swap;
+}
+
+.split-host {
+	font-family: "Source Serif 4", serif;
+	font-size: clamp(15px, 3.1vw, 32px);
+	font-weight: 400;
+	line-height: 1.5;
+	margin: 0;
+	white-space: nowrap;
+	width: max-content;
+}
+
+.split-host a {
+	color: inherit;
+	text-decoration: underline;
+}
+
+/* The unsplit row's word highlight (CSS Custom Highlight API): colour and background only, no layout change. */
+::highlight(split-demo) {
+	background-color: var(--foreground);
+	color: var(--background);
+}
+
+/* The read-along demo's highlight mode (speechType mode: 'highlight'). */
+::highlight(speechtype) {
+	background-color: var(--foreground);
+	color: var(--background);
+}

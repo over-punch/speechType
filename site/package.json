@@ -13,9 +13,13 @@
 		"@overpunch/speechtype": "file:..",
 		"@tailwindcss/postcss": "^4",
 		"@types/node": "^20",
+		"animejs": "4.5.0",
+		"gsap": "3.15.0",
 		"next": "^16.4.0",
 		"react": "19.2.4",
 		"react-dom": "19.2.4",
+		"split-type": "0.3.4",
+		"splitting": "1.1.0",
 		"tailwindcss": "^4"
 	},
 	"devDependencies": {
