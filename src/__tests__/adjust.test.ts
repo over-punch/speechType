@@ -277,6 +277,17 @@ describe('startSpeechType', () => {
 		expect(() => utterance.onboundary?.({ name: 'word', charIndex: 9999 } as SpeechSynthesisEvent)).not.toThrow()
 	})
 
+	it('a boundary past the end of the text leaves the emphasis where it was', () => {
+		const el = makeEl('alpha beta gamma')
+		startSpeechType(el)
+		const utterance = (window.SpeechSynthesisUtterance as ReturnType<typeof vi.fn>).mock.results[0].value
+		utterance.onboundary?.({ name: 'word', charIndex: 6 } as SpeechSynthesisEvent)
+		utterance.onboundary?.({ name: 'word', charIndex: 9999 } as SpeechSynthesisEvent)
+		utterance.onboundary?.({ name: 'word', charIndex: -3 } as SpeechSynthesisEvent)
+		const current = Array.from(el.querySelectorAll('[aria-current]'), (n) => n.textContent)
+		expect(current).toEqual(['beta'])
+	})
+
 	it('sentence-type boundary event is ignored', () => {
 		const el = makeEl('alpha beta gamma')
 		startSpeechType(el)

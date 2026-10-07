@@ -424,6 +424,8 @@ export function startSpeechType(el: HTMLElement, options: SpeechTypeOptions = {}
 	utterance.onboundary = (e: SpeechSynthesisEvent) => {
 		if (finished || e.name !== 'word') return
 		started = true
+		// A boundary outside the spoken text names no word: leave the emphasis where it is.
+		if (!(e.charIndex >= 0 && e.charIndex < state.text.length)) return
 		// The word whose text contains charIndex (UTF-16 offset into the spoken text).
 		let w = -1
 		for (let i = 0; i < state.wordStart.length; i++) {
