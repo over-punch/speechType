@@ -15,6 +15,7 @@ const PRESETS: { id: string; label: string; text: string }[] = [
 	{ id: "sentence", label: "A sentence with a link", text: "Yes, you can sign today. First read [the official terms]." },
 	{ id: "kerning", label: "Kerning pairs and ligatures", text: "AVATAR [Toward] WAVE office affluent" },
 	{ id: "clusters", label: "Emoji and Devanagari", text: "Family \u{1F469}‍\u{1F469}‍\u{1F467} says [नमस्ते] today" },
+	{ id: "arabic", label: "Arabic (joined letters)", text: "مرحبا [بالعالم] اليوم" },
 ]
 
 /** Longest sentence the input accepts (characters). */
@@ -170,6 +171,15 @@ export default function SplitCompare() {
 			try {
 				await document.fonts.load('32px "Source Serif 4"')
 				if (stale) return
+				// Nothing to split: clear the lines and the readings.
+				if (!text.replace(/[\[\]\s]/g, "")) {
+					stopEffects()
+					live.current = { plain: null, split: null, kept: null }
+					for (const id of ["plain", "split", "kept"] as RowId[]) mounts.current[id]?.replaceChildren()
+					setError("")
+					setFacts(null)
+					return
+				}
 				const made = {} as Record<RowId, { host: HTMLElement; pieces: HTMLElement[] }>
 				for (const id of ["plain", "split", "kept"] as RowId[]) {
 					const mount = mounts.current[id]
@@ -330,7 +340,7 @@ export default function SplitCompare() {
 					))}
 				</div>
 				<p className="text-xs text-muted mt-4" style={{ lineHeight: 1.7 }}>
-					The dashed rule marks where the unsplit line ends. Set in Source Serif 4; emoji and Devanagari come from your system’s fonts. The effect is a fade; pieces that are boxes also rise, because a transform does nothing to an inline span. Where the link’s underline breaks up, that is the split as well: an underline isn’t drawn across inline-block pieces.
+					The dashed rule marks where the unsplit line ends. Set in Source Serif 4; emoji, Devanagari and Arabic come from your system’s fonts. The effect is a fade; pieces that are boxes also rise, because a transform does nothing to an inline span. Where the link’s underline breaks up, that is the split as well: an underline isn’t drawn across inline-block pieces.
 				</p>
 			</div>
 
@@ -401,7 +411,7 @@ export default function SplitCompare() {
 									</details>
 								</dl>
 							) : (
-								<p className="text-xs text-muted">Measuring…</p>
+								<p className="text-xs text-muted">{text.replace(/[\[\]\s]/g, "") ? "Measuring…" : "Type a sentence to compare."}</p>
 							)}
 						</section>
 					)
