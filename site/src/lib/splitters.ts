@@ -6,7 +6,7 @@ import { prepareSpeechType } from '@overpunch/speechtype'
 export type Unit = 'chars' | 'words'
 
 /** The published libraries the comparison can run. */
-export type LibraryId = 'gsap' | 'splittype' | 'splitting' | 'anime'
+export type LibraryId = 'gsap' | 'splittype' | 'splitting' | 'anime' | 'stold'
 
 /** A library the comparison can run: its name, exact version, the call made for each unit and what it documents about accessibility. */
 export interface Library {
@@ -41,6 +41,11 @@ export const LIBRARIES: Library[] = [
 		call: { chars: 'Splitting({ target: el, by: "chars" })', words: 'Splitting({ target: el, by: "words" })' },
 		does: 'Adds no ARIA attributes. Run here with its own splitting.css, which makes each piece an inline-block.',
 	},
+	{
+		id: 'stold', name: 'speechType', version: '1.0.11',
+		call: { chars: 'prepareSpeechType(el)  // splits words only', words: 'prepareSpeechType(el)' },
+		does: 'Our own tool before we fixed it (the last release before 1.1.0, run from npm). It rebuilt the element from its text, so the link is gone, and put aria-hidden on every word. When speaking it also announced each word through a live region. It only ever split words.',
+	},
 ]
 
 /** Split el with a published library and return the visible pieces in order. */
@@ -61,6 +66,11 @@ export async function splitWithLibrary(el: HTMLElement, id: LibraryId, unit: Uni
 		const split = new SplitType(el, { types: unit === 'chars' ? 'words,chars' : 'words' })
 		return ((unit === 'chars' ? split.chars : split.words) ?? []) as HTMLElement[]
 	}
+	if (id === 'stold') {
+		// The published 1.0.11, installed under an alias beside the current build.
+		const old = await import('speechtype-old')
+		return old.prepareSpeechType(el, { transitionMs: 0 })
+	}
 	const { default: Splitting } = await import('splitting')
 	const [result] = Splitting({ target: el, by: unit })
 	return ((unit === 'chars' ? result.chars : result.words) ?? []) as HTMLElement[]
@@ -74,12 +84,22 @@ export function graphemes(text: string): string[] {
 	return Array.from(text)
 }
 
+/** How the wrapped-in-place pieces are laid out. */
+export type KeptDisplay = 'inline' | 'inline-block' | 'hidden-copy'
+
+/** Inline style that hides an element visually while leaving it in the accessibility tree. */
+const VISUALLY_HIDDEN = 'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;'
+
 /**
  * Wrap each character or word of el in a plain <span>, in place: every element inside (links included) stays
- * where it is, nothing is hidden and no ARIA attribute is added. White space stays as text between the spans.
- * With display "inline-block" each span becomes its own box, which transforms need.
+ * where it is and no ARIA attribute is added to it. White space stays as text between the spans.
+ * - "inline": the spans are ordinary inline spans, nothing is hidden.
+ * - "inline-block": each span becomes its own box, which transforms need.
+ * - "hidden-copy": inline-block spans again, but each run of text also stays whole beside them, visually hidden,
+ *   and the boxes are aria-hidden. The real text sits inside the same element as before, so a link keeps one
+ *   tab stop and its name.
  */
-export function wrapInPlace(el: HTMLElement, unit: Unit, display: 'inline' | 'inline-block'): HTMLElement[] {
+export function wrapInPlace(el: HTMLElement, unit: Unit, display: KeptDisplay): HTMLElement[] {
 	// Words kept inline are exactly what speechType writes, so let the library do it.
 	if (unit === 'words' && display === 'inline') return prepareSpeechType(el, { transitionMs: 0 })
 	const pieces: HTMLElement[] = []
@@ -87,16 +107,31 @@ export function wrapInPlace(el: HTMLElement, unit: Unit, display: 'inline' | 'in
 		Array.from(node.childNodes).forEach((child) => {
 			if (child.nodeType === Node.ELEMENT_NODE) { walk(child); return }
 			if (child.nodeType !== Node.TEXT_NODE) return
+			const data = (child as Text).data
+			if (!/\S/.test(data)) return
 			const fragment = document.createDocumentFragment()
-			for (const token of (child as Text).data.split(/(\s+)/)) {
+			/** Where the pieces go: straight into the page, or into an aria-hidden holder beside the real text. */
+			let target: Node = fragment
+			if (display === 'hidden-copy') {
+				const real = document.createElement('span')
+				real.className = 'kept-real'
+				real.style.cssText = VISUALLY_HIDDEN
+				real.textContent = data
+				const holder = document.createElement('span')
+				holder.className = 'kept-visual'
+				holder.setAttribute('aria-hidden', 'true')
+				fragment.append(real, holder)
+				target = holder
+			}
+			for (const token of data.split(/(\s+)/)) {
 				if (!token) continue
-				if (/^\s+$/.test(token)) { fragment.appendChild(document.createTextNode(token)); continue }
+				if (/^\s+$/.test(token)) { target.appendChild(document.createTextNode(token)); continue }
 				for (const piece of unit === 'chars' ? graphemes(token) : [token]) {
 					const span = document.createElement('span')
 					span.className = 'kept-piece'
 					span.textContent = piece
-					if (display === 'inline-block') span.style.display = 'inline-block'
-					fragment.appendChild(span)
+					if (display !== 'inline') span.style.display = 'inline-block'
+					target.appendChild(span)
 					pieces.push(span)
 				}
 			}

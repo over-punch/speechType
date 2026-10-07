@@ -218,7 +218,7 @@ export default function Demo() {
 							<span>{speaking ? 'Stop' : 'Speak'}</span>
 						</button>
 						{speaking && (
-							<span className="text-xs text-muted italic">Listening…</span>
+							<span className="text-xs text-muted italic">Speaking…</span>
 						)}
 					</div>
 				)}
@@ -243,7 +243,7 @@ export default function Demo() {
 					</div>
 					<p className="text-xs text-muted" style={{ lineHeight: 1.7 }}>
 						{mode === 'spans'
-							? 'Each word sits in its own plain span, with no ARIA attributes, and the spoken word gets heavier, larger in optical size and wider. That changes its width, so a line can rewrap while it plays.'
+							? 'Each word sits in its own plain span: nothing is hidden and no label is added. The spoken word gets heavier, larger in optical size and wider, and carries aria-current, the one attribute speechType writes. The extra width moves the words after it, and at some column widths a line rewraps while it plays.'
 							: canHighlight
 								? 'Nothing is added to the paragraph. The spoken word is painted with the CSS Custom Highlight API, which can change colour and background only, so the text never moves. The weight, opacity and transition sliders do nothing in this mode. In the repository; not on npm yet.'
 								: 'This browser has no CSS Custom Highlight API, so the highlight mode isn’t available here.'}
@@ -254,7 +254,7 @@ export default function Demo() {
 				<div className="flex flex-col gap-1">
 					<div className="flex justify-between text-xs uppercase tracking-[0.12em] text-muted">
 						<span>Word</span>
-						<span className="tabular-nums italic normal-case">{currentWordText}</span>
+						<span className="tabular-nums italic normal-case">{speaking ? 'following the speech' : currentWordText}</span>
 					</div>
 					<input
 						type="range"
@@ -263,6 +263,7 @@ export default function Demo() {
 						step={1}
 						value={activeWordIndex}
 						aria-label="Word (manual step through spoken words)"
+						aria-valuetext={activeWordIndex >= 0 ? `Word ${activeWordIndex + 1} of ${WORDS.length}: ${currentWordText}` : 'No word marked'}
 						title="Step through words one at a time — each word is emphasised as if it were being spoken aloud"
 						onChange={e => {
 							if (speaking) handleStop()
@@ -286,6 +287,7 @@ export default function Demo() {
 						step={50}
 						value={activeWeight}
 						aria-label="Active word weight (wght axis value)"
+						disabled={mode === 'highlight'}
 						title="Font weight applied to the spoken word — higher values make the active word bolder and more prominent"
 						onChange={e => setActiveWeight(Number(e.target.value))}
 						onTouchStart={e => e.stopPropagation()}
@@ -306,13 +308,16 @@ export default function Demo() {
 						step={0.05}
 						value={inactiveOpacity}
 						aria-label="Inactive word opacity"
+						disabled={mode === 'highlight'}
 						title="Opacity of words that are not currently being spoken — lower values create stronger contrast between the active word and the rest"
 						onChange={e => setInactiveOpacity(Number(e.target.value))}
 						onTouchStart={e => e.stopPropagation()}
 						style={{ touchAction: 'none' }}
 					/>
 				<p className="text-xs text-muted" data-dim-contrast>
-							{dimRatio === null
+							{mode === 'highlight'
+								? 'Nothing is dimmed in highlight mode, and the weight and transition sliders don’t apply.'
+								: dimRatio === null
 								? 'Dimming lowers the contrast of the words not being spoken.'
 								: `Dimmed words on this page: ${dimRatio.toFixed(1)}:1. ${dimRatio >= AA ? 'That clears' : 'That is under'} the ${AA}:1 that WCAG AA asks of body text. The published default is 0.45; the next release’s is 0.6.`}
 						</p>
@@ -351,6 +356,7 @@ export default function Demo() {
 						step={20}
 						value={transitionMs}
 						aria-label="Style transition duration in milliseconds"
+						disabled={mode === 'highlight'}
 						title="How long the font-weight and opacity transition takes when emphasis moves from one word to the next — 0ms is instant, 300ms is a smooth fade"
 						onChange={e => setTransitionMs(Number(e.target.value))}
 						onTouchStart={e => e.stopPropagation()}

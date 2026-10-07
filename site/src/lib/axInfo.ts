@@ -101,8 +101,25 @@ export function tabStops(host: Element): TabStop[] {
 }
 
 /**
+ * Whether the content on one side of a white-space node is inline text, so that Chrome keeps the space as its
+ * own object: a text node, or an inline element whose nearest edge is (looked at recursively). A box such as
+ * an inline-block, or nothing at all on that side, does not count.
+ */
+function inlineEdge(node: Node | null, side: 'start' | 'end'): boolean {
+	if (!node) return false
+	if (node.nodeType === Node.TEXT_NODE) return true
+	if (node.nodeType !== Node.ELEMENT_NODE) return false
+	const el = node as Element
+	// Layout decides this, not aria-hidden: a space between two hidden inline spans is still kept.
+	if (getComputedStyle(el).display !== 'inline') return false
+	return inlineEdge(side === 'start' ? el.firstChild : el.lastChild, side)
+}
+
+/**
  * The text under host that is left in the accessibility tree: one entry per DOM text node that is not inside
- * hidden content (Chrome exposes each as its own static-text object). White-space-only nodes are dropped.
+ * hidden content (Chrome exposes each as its own static-text object). A white-space-only node is returned as
+ * " " when it sits next to inline content (Chrome keeps it as an object) and dropped when it only separates
+ * boxes such as inline-blocks (Chrome drops it).
  */
 export function exposedText(host: Element): string[] {
 	const out: string[] = []
@@ -111,6 +128,7 @@ export function exposedText(host: Element): string[] {
 			if (child.nodeType === Node.TEXT_NODE) {
 				const data = (child as Text).data
 				if (/\S/.test(data)) out.push(flat(data))
+				else if (data && (inlineEdge(child.previousSibling, 'end') || inlineEdge(child.nextSibling, 'start'))) out.push(' ')
 				return
 			}
 			if (child.nodeType === Node.ELEMENT_NODE && !isAxHidden(child as Element)) walk(child)
