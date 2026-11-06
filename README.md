@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/%40overpunch%2Fspeechtype.svg)](https://www.npmjs.com/package/@overpunch/speechtype) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![part of liiift type-tools](https://img.shields.io/badge/liiift-type--tools-blueviolet)](https://github.com/over-punch/type-tools)
 
-Typography that follows your voice — per-word typographic emphasis synced to Web Speech API boundary events. Each spoken word gets wider tracking, heavier weight, and larger optical size; the rest of the text recedes. A read-along effect grounded in typographic logic, not arbitrary highlight colours.
+Typography that follows your voice — per-word typographic emphasis synced to Web Speech API boundary events. Each spoken word gets wider tracking, heavier weight, and larger optical size; the rest of the text recedes. Use span mode for typographic emphasis, or the opt-in CSS Highlight mode to mark words without wrapping them.
 
 ![speechType emphasising each word of a paragraph in turn as it is spoken aloud — the active word grows bolder, wider-tracked, and larger in optical size while the surrounding text fades back](https://raw.githubusercontent.com/over-punch/speechType/main/assets/speechtype-demo.gif?v=1)
 
@@ -190,8 +190,8 @@ Visual options apply everywhere; speech options are only read by `startSpeechTyp
 | `activeWeight` | `number` | +300 | visual | `wght` axis value on the active word. Unset, the word's own weight plus 300 (400 → 700, 700 → 1000). Must sit within the font's `wght` axis range |
 | `activeOpsz` | `number` | ×1.5 | visual | `opsz` axis value on the active word. Unset, 1.5× the word's own optical size (its font size in px, so 16px text → 24). Must sit within the font's `opsz` axis range |
 | `inactiveOpacity` | `number` | `0.6` | visual | Opacity of inactive (not currently spoken) words. `0.6` keeps black on white at 5.7:1 (WCAG AA asks for 4.5:1); colours with less contrast need more, and `1` turns dimming off. It was `0.45` up to 1.1.0 |
-| `mode` | `'spans' \| 'highlight'` | `'spans'` | visual | **Unreleased (after 1.1.0).** `'highlight'` wraps nothing and paints the spoken word with the CSS Custom Highlight API; see [Highlight mode](#highlight-mode-no-spans) |
-| `highlightName` | `string` | `'speechtype'` | visual | **Unreleased.** Name of the custom highlight in `'highlight'` mode |
+| `mode` | `'spans' \| 'highlight'` | `'spans'` | visual | **Added in 1.2.0.** `'highlight'` wraps nothing and paints the spoken word with the CSS Custom Highlight API; see [Highlight mode](#highlight-mode-no-spans) |
+| `highlightName` | `string` | `'speechtype'` | visual | **Added in 1.2.0.** Name of the custom highlight in `'highlight'` mode |
 | `transitionMs` | `number` | `80` | visual | CSS transition duration in ms for style changes |
 | `rate` | `number` | `0.9` | speech | Speech rate (0.1–10). Passed to `SpeechSynthesisUtterance` |
 | `pitch` | `number` | `1` | speech | Speech pitch (0–2). Passed to `SpeechSynthesisUtterance` |
@@ -225,7 +225,7 @@ startSpeechType(el, {
 
 ## Highlight mode (no spans)
 
-> **Unreleased:** in the repository after 1.1.0, not on npm yet.
+> Available in **1.2.0** and later. Highlight mode is opt-in; span mode remains the default.
 
 ```ts
 startSpeechType(el, { mode: 'highlight' })
@@ -251,7 +251,7 @@ What speechType does, and what we have and haven't checked:
 
 - **The text stays real text.** In the default mode words are wrapped in plain spans: nothing is hidden, nothing is announced on top of the speech, no `aria-label` is added, and links and headings keep their names. The spoken word gets `aria-current="true"`. In highlight mode nothing is added at all.
 - **Checked in Chrome's accessibility tree, not with a screen reader.** Roles and names match the unwrapped element (Chromium 149, October 2026). We have not run VoiceOver, NVDA, JAWS or TalkBack. A span per word does put the text into more, smaller pieces in the tree, and a [2018 report](https://axesslab.com/text-splitting/) found VoiceOver on iOS stopping at inline elements inside a link. If that matters to you, use highlight mode.
-- **Before 1.1.0 this was wrong.** Versions up to 1.0.11 put `aria-hidden` on every word and announced each word through a live region on top of the audio. Upgrade.
+- **Before 1.1.0 this was wrong.** Versions up to 1.0.11 put `aria-hidden` on every word and wrote each word to a live region, risking competing announcements. Upgrade.
 - All emphasis is plain CSS (`font-variation-settings`, `letter-spacing`, `opacity`); no content is duplicated or reordered.
 - speechType reads text aloud with the browser's speech synthesis. It is not a screen reader and doesn't replace one.
 

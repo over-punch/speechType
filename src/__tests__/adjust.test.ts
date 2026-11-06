@@ -437,14 +437,14 @@ describe('review fixes', () => {
 		const el = attached('alpha<br>beta <span hidden>secret</span><span aria-hidden="true">deco</span><style>.x{}</style> gamma')
 		startSpeechType(el)
 		const Utterance = SpeechSynthesisUtterance as unknown as { mock: { calls: string[][] } }
-		expect(Utterance.mock.calls.at(-1)![0]).toBe('alpha beta gamma')
+		expect(Utterance.mock.calls[Utterance.mock.calls.length - 1]![0]).toBe('alpha beta gamma')
 	})
 
 	it('a word split by markup is one spoken word', () => {
 		const el = attached('Split<em>ting</em> here')
 		startSpeechType(el)
 		const Utterance = SpeechSynthesisUtterance as unknown as { mock: { calls: string[][] } }
-		expect(Utterance.mock.calls.at(-1)![0]).toBe('Splitting here')
+		expect(Utterance.mock.calls[Utterance.mock.calls.length - 1]![0]).toBe('Splitting here')
 	})
 
 	it("a stale stop() doesn't cancel another element's speech", () => {
@@ -464,7 +464,7 @@ describe('review fixes', () => {
 		let ended = 0
 		startSpeechType(el, { onEnd: () => ended++ })
 		const Utterance = SpeechSynthesisUtterance as unknown as { mock: { results: { value: { lang?: string; onend?: () => void } }[] } }
-		const u = Utterance.mock.results.at(-1)!.value
+		const u = Utterance.mock.results[Utterance.mock.results.length - 1]!.value
 		expect(u.lang).toBe('ja')
 		u.onend?.()
 		expect(ended).toBe(1)
