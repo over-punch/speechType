@@ -1,0 +1,20 @@
+MW 20px "Read the terms before you sign.": normal 288.63 | inline spans 288.86 | inline-block 290.78 (+0.74%) | kerning none 290.52 | kern+liga none 290.52
+MW 20px "AVATAR Toward WAVE office affluent": normal 345.34 | inline spans 345.63 | inline-block 355.11 (+2.83%) | kerning none 355.2 | kern+liga none 354.8
+MW 20px "To finish, read the official terms first.": normal 343.23 | inline spans 343.56 | inline-block 344.92 (+0.49%) | kerning none 345.05 | kern+liga none 344.56
+MW 20px "Yes, you can sign today. First read the official terms.": normal 473.13 | inline spans 473.56 | inline-block 479.52 (+1.35%) | kerning none 479.19 | kern+liga none 479.03
+MW 20px "Every word spoken carries its own weight": normal 382.11 | inline spans 382.47 | inline-block 385.33 (+0.84%) | kerning none 384.95 | kern+liga none 384.95
+MW 32px "Read the terms before you sign.": normal 455.59 | inline spans 455.81 | inline-block 458.84 (+0.71%) | kerning none 458.69 | kern+liga none 458.69
+MW 32px "AVATAR Toward WAVE office affluent": normal 546.75 | inline spans 546.98 | inline-block 562.48 (+2.88%) | kerning none 562.91 | kern+liga none 562.25
+MW 32px "To finish, read the official terms first.": normal 541.17 | inline spans 541.45 | inline-block 543.67 (+0.46%) | kerning none 544.08 | kern+liga none 543.39
+MW 32px "Yes, you can sign today. First read the official terms.": normal 746.22 | inline spans 746.63 | inline-block 756.03 (+1.31%) | kerning none 755.94 | kern+liga none 755.7
+MW 32px "Every word spoken carries its own weight": normal 603.56 | inline spans 603.88 | inline-block 608.16 (+0.76%) | kerning none 607.95 | kern+liga none 607.95
+SS 20px "Read the terms before you sign.": normal 281.39 | inline spans 281.58 | inline-block 283.31 (+0.68%) | kerning none 283.09 | kern+liga none 283.09
+SS 20px "AVATAR Toward WAVE office affluent": normal 325.89 | inline spans 326.09 | inline-block 345.53 (+6.03%) | kerning none 341.59 | kern+liga none 345.28
+SS 20px "To finish, read the official terms first.": normal 329.34 | inline spans 329.58 | inline-block 335.56 (+1.89%) | kerning none 331.55 | kern+liga none 335.25
+SS 20px "Yes, you can sign today. First read the official terms.": normal 459.45 | inline spans 459.8 | inline-block 468.09 (+1.88%) | kerning none 465.78 | kern+liga none 467.69
+SS 20px "Every word spoken carries its own weight": normal 368.39 | inline spans 368.66 | inline-block 371.48 (+0.84%) | kerning none 371.2 | kern+liga none 371.2
+SS 32px "Read the terms before you sign.": normal 438 | inline spans 438.22 | inline-block 440.98 (+0.68%) | kerning none 440.78 | kern+liga none 440.78
+SS 32px "AVATAR Toward WAVE office affluent": normal 507.36 | inline spans 507.59 | inline-block 538.22 (+6.08%) | kerning none 532.59 | kern+liga none 538
+SS 32px "To finish, read the official terms first.": normal 512.61 | inline spans 512.91 | inline-block 521.83 (+1.80%) | kerning none 516.13 | kern+liga none 521.55
+SS 32px "Yes, you can sign today. First read the official terms.": normal 713.98 | inline spans 714.41 | inline-block 727.44 (+1.89%) | kerning none 724.28 | kern+liga none 727.05
+SS 32px "Every word spoken carries its own weight": normal 573.09 | inline spans 573.41 | inline-block 578.16 (+0.88%) | kerning none 577.86 | kern+liga none 577.86

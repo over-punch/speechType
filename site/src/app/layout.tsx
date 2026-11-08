@@ -33,7 +33,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 	return (
 		<html lang="en" className={`h-full antialiased ${inter.variable}`}>
 			<body className="min-h-full flex flex-col">
-				<SiteHeader current="speechType" githubUrl="https://github.com/over-punch/speechType" />{children}</body>
+				<SiteHeader current="speechType" githubUrl="https://github.com/over-punch/speechType" npmUrl="https://www.npmjs.com/package/@overpunch/speechtype" sections={[
+					{ label: "Demo", href: "/#demo" },
+					{ label: "Comparison", href: "/#split" },
+					{ label: "Paper", href: "/paper" },
+					{ label: "Talk", href: "/talk" },
+				]} />{children}</body>
 		</html>
 	)
 }

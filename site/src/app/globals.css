@@ -46,3 +46,9 @@
 	background-color: var(--foreground);
 	color: var(--background);
 }
+
+/* A solid focus ring on sliders: the shared one is half-transparent and falls under 3:1 on this panel. */
+input[type="range"]:focus-visible {
+	outline: 2px solid var(--foreground);
+	outline-offset: 3px;
+}

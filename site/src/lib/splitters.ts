@@ -44,7 +44,7 @@ export const LIBRARIES: Library[] = [
 	{
 		id: 'stold', name: 'speechType', version: '1.0.11',
 		call: { chars: 'prepareSpeechType(el)  // splits words only', words: 'prepareSpeechType(el)' },
-		does: 'Our own tool before we fixed it (the last release before 1.1.0, run from npm). It rebuilt the element from its text, so the link is gone, and put aria-hidden on every word. When speaking it also announced each word through a live region. It only ever split words.',
+		does: 'Our own tool before we fixed it (the last release before 1.1.0, run from npm). It rebuilt the element from its text, so the link is gone, and put aria-hidden on every word. While speaking it wrote each word into a live region, one at a time, on top of the audio. It only ever split words.',
 	},
 ]
 
@@ -88,7 +88,7 @@ export function graphemes(text: string): string[] {
 export type KeptDisplay = 'inline' | 'inline-block' | 'hidden-copy'
 
 /** Inline style that hides an element visually while leaving it in the accessibility tree. */
-const VISUALLY_HIDDEN = 'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;'
+const VISUALLY_HIDDEN = 'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;user-select:none;-webkit-user-select:none;'
 
 /**
  * Wrap each character or word of el in a plain <span>, in place: every element inside (links included) stays

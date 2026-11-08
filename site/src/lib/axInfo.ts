@@ -45,16 +45,16 @@ function nameFromContent(node: Node): string {
 		if (child.nodeType !== Node.ELEMENT_NODE) return
 		const el = child as Element
 		if (isAxHidden(el)) return
-		const label = el.getAttribute('aria-label')?.trim()
+		const label = flat(el.getAttribute('aria-label') ?? '')
 		const part = label || nameFromContent(el)
 		out += getComputedStyle(el).display === 'inline' ? part : ` ${part} `
 	})
 	return out
 }
 
-/** Collapse runs of white space and trim, as accessible names are reported. */
+/** Collapse ASCII whitespace; Chrome keeps non-breaking spaces in accessible names. */
 function flat(text: string): string {
-	return text.replace(/\s+/g, ' ').trim()
+	return text.replace(/[ \t\n\r\f]+/g, ' ').replace(/^ +| +$/g, '')
 }
 
 /**
@@ -66,10 +66,10 @@ function flat(text: string): string {
 export function accessibleName(el: Element): string {
 	const ids = el.getAttribute('aria-labelledby')?.trim()
 	if (ids) {
-		const text = ids.split(/\s+/).map((id) => el.ownerDocument.getElementById(id)).filter((n): n is HTMLElement => !!n).map((n) => n.getAttribute('aria-label')?.trim() || n.textContent || '').join(' ')
+		const text = ids.split(/\s+/).map((id) => el.ownerDocument.getElementById(id)).filter((n): n is HTMLElement => !!n).map((n) => flat(n.getAttribute('aria-label') ?? '') || n.textContent || '').join(' ')
 		if (flat(text)) return flat(text)
 	}
-	const label = el.getAttribute('aria-label')?.trim()
+	const label = flat(el.getAttribute('aria-label') ?? '')
 	if (label) return flat(label)
 	return NAME_FROM_CONTENT.has(roleOf(el)) ? flat(nameFromContent(el)) : ''
 }
@@ -115,6 +115,13 @@ function inlineEdge(node: Node | null, side: 'start' | 'end'): boolean {
 	return inlineEdge(side === 'start' ? el.firstChild : el.lastChild, side)
 }
 
+/** Whether a white-space text node takes up room on the line (a space collapsed at the start or end of a line does not). */
+function drawn(node: Text): boolean {
+	const range = node.ownerDocument.createRange()
+	range.selectNodeContents(node)
+	return Array.from(range.getClientRects()).some((r) => r.width > 0)
+}
+
 /**
  * The text under host that is left in the accessibility tree: one entry per DOM text node that is not inside
  * hidden content (Chrome exposes each as its own static-text object). A white-space-only node is returned as
@@ -127,8 +134,9 @@ export function exposedText(host: Element): string[] {
 		node.childNodes.forEach((child) => {
 			if (child.nodeType === Node.TEXT_NODE) {
 				const data = (child as Text).data
-				if (/\S/.test(data)) out.push(flat(data))
-				else if (data && (inlineEdge(child.previousSibling, 'end') || inlineEdge(child.nextSibling, 'start'))) out.push(' ')
+				// Only collapsible white space can vanish: a non-breaking space is a character like any other.
+				if (/[^ \t\n\r\f]/.test(data)) out.push(flat(data))
+				else if (data && drawn(child as Text) && (inlineEdge(child.previousSibling, 'end') || inlineEdge(child.nextSibling, 'start'))) out.push(' ')
 				return
 			}
 			if (child.nodeType === Node.ELEMENT_NODE && !isAxHidden(child as Element)) walk(child)

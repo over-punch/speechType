@@ -5,17 +5,17 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { applySpeechType, prepareSpeechType, removeSpeechType } from "@overpunch/speechtype"
 import "splitting/dist/splitting.css"
 import { useClientValue } from "@/lib/clientValue"
-import { accessibleName, exposedText, nameProhibited, roleOf, tabStops } from "@/lib/axInfo"
+import { accessibleName, exposedText, isAxHidden, isAxHiddenWithin, nameProhibited, roleOf, tabStops } from "@/lib/axInfo"
 import type { TabStop } from "@/lib/axInfo"
 import { LIBRARIES, graphemes, splitWithLibrary, wrapInPlace } from "@/lib/splitters"
 import type { KeptDisplay, LibraryId, Unit } from "@/lib/splitters"
 
 /** Sentences offered as presets. Square brackets mark the linked words. */
-const PRESETS: { id: string; label: string; text: string }[] = [
+const PRESETS: { id: string; label: string; text: string; lang?: string; linkLang?: string }[] = [
 	{ id: "sentence", label: "A sentence with a link", text: "Yes, you can sign today. First read [the official terms]." },
 	{ id: "kerning", label: "Kerning pairs and ligatures", text: "AVATAR [Toward] WAVE office affluent" },
-	{ id: "clusters", label: "Emoji and Devanagari", text: "Family \u{1F469}‍\u{1F469}‍\u{1F467} says [नमस्ते] today" },
-	{ id: "arabic", label: "Arabic (joined letters)", text: "مرحبا [بالعالم] اليوم" },
+	{ id: "clusters", label: "Emoji and Devanagari", text: "Family \u{1F469}‍\u{1F469}‍\u{1F467} says [नमस्ते] today", linkLang: "hi" },
+	{ id: "arabic", label: "Arabic (joined letters)", text: "مرحبا [بالعالم] اليوم", lang: "ar" },
 ]
 
 /** Longest sentence the input accepts (characters). */
@@ -40,6 +40,9 @@ const ROSELLI: [string, boolean][] = [
 	["TalkBack / Firefox", false],
 	["VoiceOver iPadOS / Safari", false],
 ]
+
+/** Chrome stops building a name from content after this many objects (kMaxDescendantsForTextAlternativeComputation in Chromium's ax_node_object.cc). */
+const CHROME_NAME_OBJECTS = 100
 
 /** Name of the CSS custom highlight the unsplit row uses (styled in globals.css). */
 const HIGHLIGHT = "split-demo"
@@ -73,14 +76,19 @@ interface Facts {
 	/** Pieces that are only part of a user-perceived character */
 	brokenLetters: string[]
 	pieceDisplay: string
+	/** Objects Chrome walks to build a name from this element's content: text objects, boxes and links */
+	axObjects: number
+	/** Whether the name comes from content and there are more objects than Chrome reads for a name */
+	nameCapped: boolean
 	html: string
 }
 
-/** Turn "Read [the terms] first." into text nodes and a link, without parsing it as HTML. Brackets that don't pair up stay as text. */
+/** Turn "Read [the terms] first." into text nodes and a link, without parsing it as HTML. Brackets that don't pair up, or hold no words, stay as text. */
 function fill(host: HTMLElement, text: string): void {
 	text.split(/(\[[^\[\]]*\])/).forEach((part) => {
 		if (!part) return
-		const linked = /^\[[^\[\]]*\]$/.test(part)
+		// A pair of brackets with nothing but space inside is not a link: it stays as typed.
+		const linked = /^\[[^\[\]]*[^\[\]\s][^\[\]]*\]$/.test(part)
 		if (!linked) { host.appendChild(document.createTextNode(part)); return }
 		const a = document.createElement("a")
 		a.href = "#split"
@@ -117,7 +125,17 @@ function read(id: RowId, host: HTMLElement, pieces: HTMLElement[], unit: Unit, a
 		})
 		applySpeechType(host, -1)
 	}
+	const exposed = exposedText(host)
+	// What Chrome counts on the way to a name: every text object, every element that is its own box, every link.
+	let boxes = 0
+	host.querySelectorAll("*").forEach((el) => {
+		if (isAxHiddenWithin(el, host) || isAxHidden(el)) return
+		if (el.matches("a[href]") || getComputedStyle(el).display !== "inline") boxes++
+	})
+	const axObjects = exposed.length + boxes
 	return {
+		axObjects,
+		nameCapped: roleOf(host) === "heading" && !host.getAttribute("aria-label") && axObjects > CHROME_NAME_OBJECTS,
 		width,
 		activeWidth,
 		kernOff: id === "plain" ? widthWith(host, { fontKerning: "none" }) : null,
@@ -129,7 +147,7 @@ function read(id: RowId, host: HTMLElement, pieces: HTMLElement[], unit: Unit, a
 		hostName: accessibleName(host),
 		hostNameProhibited: nameProhibited(host),
 		stops: tabStops(host),
-		exposed: exposedText(host),
+		exposed,
 		links: Math.min(authored, host.querySelectorAll("a[href]").length),
 		pieces: pieces.length,
 		letters: letters.length,
@@ -148,14 +166,15 @@ function count(n: number, one: string, many = `${one}s`): string {
 function runs(list: string[], max = 4): string {
 	const lettered = list.filter((t) => t !== " ")
 	if (!lettered.length) return "none"
-	const shown = lettered.slice(0, max).map((t) => `“${t}”`).join(", ")
+	// U+2068/U+2069 isolate each run, so right-to-left text doesn't reorder the quotes and commas around it.
+	const shown = lettered.slice(0, max).map((t) => `“\u2068${t}\u2069”`).join(", ")
 	return lettered.length > max ? `${shown} (+${lettered.length - max} more)` : shown
 }
 
 /** The names of the tab stops, e.g. “the terms”, (no name). */
 function stopNames(stops: TabStop[]): string {
 	if (!stops.length) return "none"
-	return stops.map((s) => (s.name ? `“${s.name}”` : "(no name)")).join(", ")
+	return stops.map((s) => (s.name ? `“\u2068${s.name}\u2069”` : "(no name)")).join(", ")
 }
 
 /** A signed width difference: "+13.4 px (+1.9%)". */
@@ -166,25 +185,47 @@ function delta(width: number, base: number): string {
 }
 
 /** What changed from the unsplit row, each as one plain sentence about what a person meets. */
-function meaning(f: Facts, plain: Facts): string[] {
+function meaning(f: Facts, plain: Facts, unit: Unit, tag: string): string[] {
 	const out: string[] = []
 	const same = (a: string, b: string) => a.replace(/\s/g, "") === b.replace(/\s/g, "")
+	const nameless = f.stops.filter((s) => !s.name).length
 	if (f.links < plain.links) out.push(`The link is gone. Its words are still drawn, but there is nothing to follow, by mouse, keyboard or screen reader.`)
-	if (f.stops.some((s) => !s.name)) out.push(`A link has no name. Someone using a screen reader reaches it and isn’t told where it goes.`)
-	if (f.stops.length > plain.stops.length) out.push(`One link has become ${f.stops.length} tab stops: a keyboard user presses Tab ${f.stops.length} times to get past it.`)
+	if (f.stops.length > plain.stops.length) out.push(`One link has become ${f.stops.length} tab stops${nameless ? `, and the extra one has no name` : ""}: a keyboard user presses Tab ${f.stops.length} times to get past it.`)
+	else if (nameless) out.push(`A link stays focusable but has an empty accessible name in the browser. This page does not measure what a screen reader announces.`)
 	const spelled = f.stops.find((s, i) => s.name && plain.stops[i] && s.name !== plain.stops[i].name && same(s.name, plain.stops[i].name))
-	if (spelled) out.push(`The link’s name is now separate letters (“${spelled.name}”), which a screen reader may read one letter at a time.`)
-	if (f.hostNameProhibited) out.push(`The sentence now exists only as an aria-label on a <${f.hostRole === "paragraph" ? "p" : "div"}>. ARIA doesn’t allow a name there, so whether it is read depends on the screen reader: in the test quoted below, two of eight read it.`)
+	if (spelled) out.push(`The link’s name is now separate letters (“\u2068${spelled.name}\u2069”), which a screen reader may read one letter at a time.`)
+	if (f.hostNameProhibited) out.push(`The sentence now exists only as an aria-label on a <${tag}>. ARIA doesn’t allow a name there, so whether it is read depends on the screen reader: in the test quoted below, of a <div>, two of eight read it.`)
 	else if (f.hostName !== plain.hostName && same(f.hostName, plain.hostName)) out.push(`The heading’s name is now separate letters.`)
 	else if (f.hostLabel !== null && plain.hostLabel === null) out.push(`The heading’s words are carried by an aria-label, which a heading is allowed to have. Text set this way isn’t reliably translated by the browser.`)
 	const lettered = f.exposed.filter((t) => t !== " ")
-	const plainLettered = plain.exposed.filter((t) => t !== " ")
-	if (lettered.length === 0 && f.hostLabel === null) out.push(`None of the text is left for a screen reader: every piece is hidden and nothing replaces it.`)
-	else if (lettered.length > plainLettered.length) out.push(`The same words, in ${f.exposed.length} text objects instead of ${plain.exposed.length}. Whether a screen reader pauses or stops between them isn’t something this page can tell.`)
-	if (f.width - plain.width >= 0.5) out.push(`The line is ${(f.width - plain.width).toFixed(1)} px wider: the letters are shaped one at a time, so they no longer kern or join.`)
-	if (f.activeWidth !== null && f.activeWidth - plain.width >= 0.5) out.push(`While a word is emphasised the line grows by up to ${(f.activeWidth - plain.width).toFixed(1)} px, so text after it moves and a line can rewrap.`)
+	if (lettered.length === 0 && f.hostLabel === null) out.push(`None of the text is left in the page for a screen reader: every piece is hidden.`)
+	else if (f.exposed.length > plain.exposed.length) out.push(`The same words, in ${f.exposed.length} text objects instead of ${plain.exposed.length}. Whether a screen reader pauses or stops between them isn’t something this page can tell.`)
+	const wider = f.width - plain.width
+	if (wider >= 0.5) {
+		const boxes = f.pieceDisplay !== "" && f.pieceDisplay !== "inline"
+		if (!boxes) out.push(`The line is ${wider.toFixed(1)} px wider.`)
+		else if (unit === "words") out.push(`The line is ${wider.toFixed(1)} px wider: each word is its own box, so nothing kerns across the spaces.`)
+		else if (plain.kernLigaOff !== null && f.width - plain.kernLigaOff > 1) out.push(`The line is ${wider.toFixed(1)} px wider: each letter is shaped alone. That is wider even than the unsplit line with kerning and ligatures switched off (${plain.kernLigaOff.toFixed(1)} px), because letters that should join or stack have come apart.`)
+		else out.push(`The line is ${wider.toFixed(1)} px wider: each letter is shaped alone, so nothing kerns or joins${plain.kernLigaOff !== null ? `. It matches the unsplit line with kerning and ligatures switched off (${plain.kernLigaOff.toFixed(1)} px)` : ""}.`)
+	}
+	if (f.activeWidth !== null && f.activeWidth - plain.width >= 0.5) out.push(`While a word is emphasised the line grows by up to ${(f.activeWidth - plain.width).toFixed(1)} px (the word is heavier and wider), so the text after it moves and a line can rewrap.`)
 	if (f.brokenLetters.length) out.push(`${count(f.brokenLetters.length, "character was", "characters were")} cut into parts that can’t be drawn on their own.`)
 	return out
+}
+
+/** Costs a row has that this page doesn't measure, stated so they aren't missed. */
+function unmeasured(id: RowId, lib: LibraryId, unit: Unit, keptDisplay: KeptDisplay, links: number): string {
+	if (id === "plain") return "This demo highlights colour and background. The API supports a restricted set of painting properties, including text decoration and text shadow where supported; it cannot change font weight, font size or transforms, and it marks nothing in the markup, so the page has no record of which word is current. It hasn’t been tried with a screen reader."
+	if (id === "split") {
+		if (lib === "stold") return "While speaking, 1.0.11 also wrote each word into a live region. That could compete with the audio, depending on the screen reader. This page doesn’t start speech, so those announcements are not measured."
+		if (lib === "anime") return "anime.js’s hidden copy puts the words in the page twice (find-in-page and copying can meet both)." + (links > 0 ? " The real link is clipped to one pixel, so its focus ring may be hard to locate." : " This sentence has no link to compare.")
+		return "Not measured here: what each screen reader does with this markup."
+	}
+	if (keptDisplay === "hidden-copy") return "Costs not measured here: the words are in the page twice (the real ones can’t be selected, so copying gives them once, but find-in-page can meet both); the letters you see are hidden from assistive technology and the ones it reads are clipped to one pixel, which may behave differently under touch exploration or a focus highlight. No screen reader has been tried on it. It is the riskiest of the three."
+	if (keptDisplay === "inline-block") return "Not measured here: what a screen reader does with one box per piece."
+	return unit === "words"
+		? "Not measured here: what a screen reader does with one object per word, or with aria-current moving from word to word."
+		: "Not measured here: what a screen reader does with one object per letter."
 }
 
 /** Split-text comparison: unsplit, split by a library, and wrapped in place. */
@@ -246,12 +287,19 @@ export default function SplitCompare() {
 					const host = document.createElement(tag)
 					host.className = "split-host"
 					host.style.fontKerning = kerning
+					// Let the text set its own direction, and name the language of the presets that aren't English.
+					host.dir = "auto"
+					const preset = PRESETS.find((p) => p.text === text)
+					if (preset?.lang) host.lang = preset.lang
 					fill(host, text)
+					if (preset?.linkLang) host.querySelectorAll("a").forEach((a) => { a.lang = preset.linkLang ?? "" })
 					mount.replaceChildren(host)
 					made[id] = { host, pieces: [] }
 				}
 				const authored = made.plain.host.querySelectorAll("a[href]").length
 				const rendered = made.plain.host.textContent ?? ""
+				// speechType 1.0.11 rebuilt the element with innerHTML, so typed markup became real elements (fixed in 1.1.0). Don't feed it any.
+				if (lib === "stold" && /[<&]/.test(text)) throw new Error("speechType 1.0.11 turned typed text into HTML, a bug fixed in 1.1.0, so this page won’t run it on a sentence containing < or &. Pick another library or remove those characters.")
 				made.split.pieces = await splitWithLibrary(made.split.host, lib, unit)
 				if (stale) return
 				made.kept.pieces = wrapInPlace(made.kept.host, unit, keptDisplay)
@@ -265,7 +313,13 @@ export default function SplitCompare() {
 					kept: read("kept", made.kept.host, made.kept.pieces, unit, authored, rendered),
 				})
 			} catch (e) {
-				if (!stale) setError(e instanceof Error ? e.message : String(e))
+				if (stale) return
+				// Don't leave the last sentence's readings under a sentence that wasn't run.
+				stopEffects()
+				live.current = { plain: null, split: null, kept: null }
+				for (const id of ROWS) mounts.current[id]?.replaceChildren()
+				setFacts(null)
+				setError(e instanceof Error ? e.message : String(e))
 			}
 		}
 		run()
@@ -317,10 +371,10 @@ export default function SplitCompare() {
 		: keptDisplay === "inline-block"
 			? "The same spans, each made an inline-block so it can be moved or rotated. No ARIA attributes. The letters are still real text, but each is now its own box."
 			: unit === "words"
-				? "speechType’s own prepareSpeechType(): a plain span around each word (this page runs the repository build; the wrapping is the same as 1.1.0 on npm). Nothing is hidden and no aria-label is added. The one attribute it writes is aria-current on the word being emphasised."
+				? "speechType’s own prepareSpeechType(): a plain span around each word (this page runs the local build; 1.1.0 is the dated published wrapping comparison, and highlight mode shipped in 1.2.0). Nothing is hidden and no aria-label is added. The one attribute it writes is aria-current on the word being emphasised."
 				: "A plain span around each character, nothing else: no ARIA attributes. (speechType itself wraps words; this is the same idea per character.)"
 	const columns: { id: RowId; title: string; sub: string }[] = [
-		{ id: "plain", title: "Unsplit", sub: "The sentence as written. Its button runs speechType’s highlight mode (in the repository, not on npm yet): it paints each word with the CSS Custom Highlight API and adds nothing to the page. Highlights can change colour and background, not weight, size or position." },
+		{ id: "plain", title: "Unsplit", sub: "The sentence as written. Its button runs speechType’s highlight mode (available as an opt-in mode in 1.2.0): it paints each word with the CSS Custom Highlight API and adds nothing to the page. This demo uses colour and background; the API permits restricted painting properties, subject to browser support, not font weight, font size or transforms." },
 		{ id: "split", title: `Split by ${library.name} ${library.version}`, sub: library.does },
 		{ id: "kept", title: keptTitle, sub: keptSub },
 	]
@@ -336,7 +390,7 @@ export default function SplitCompare() {
 						type="button"
 						aria-pressed={value === o.value}
 						onClick={() => set(o.value)}
-						className="text-xs px-3 py-1.5 rounded-full border"
+						className="text-xs px-3 py-1.5 rounded-2xl border text-left max-w-full"
 						style={{ borderColor: "currentColor", background: value === o.value ? "var(--btn-bg)" : "transparent", fontWeight: value === o.value ? 600 : 400 }}
 					>
 						{o.label}
@@ -348,6 +402,10 @@ export default function SplitCompare() {
 
 	return (
 		<div className="w-full flex flex-col gap-8" data-split-compare>
+
+			<div className="text-xs text-muted" style={{ lineHeight: 1.7 }} data-glossary>
+<p><strong>The words used here.</strong> A <em>screen reader</em> presents interface and document information through speech and/or braille; its users may also have usable vision. It uses information exposed through the browser’s <em>accessibility tree</em>, rather than simply reading pixels. In that list each thing has a <em>role</em> (paragraph, link, heading) and may have a <em>name</em> (for a link, its words). A <em>tab stop</em> is a place the Tab key lands. <em>aria-hidden</em> removes something from that list; <em>aria-label</em> gives something a name by hand. An <em>inline-block</em> is a piece of text made into its own small box, which is what lets an animation move it. <em>Kerning</em> adjusts spacing between particular glyph pairs, bringing them closer or farther apart. A <em>ligature</em> replaces a character sequence with a glyph, which need not be a joined shape. Cursive joining supplies contextual connected forms. These shaping operations depend on context and formatting boundaries.</p>
+			</div>
 
 			{/* Controls */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -364,7 +422,7 @@ export default function SplitCompare() {
 					/>
 					<div className="flex flex-wrap gap-2 items-center">
 						{PRESETS.map((p) => (
-							<button key={p.id} type="button" aria-pressed={text === p.text} onClick={() => setText(p.text)} className="text-xs px-3 py-1.5 rounded-full border" style={{ borderColor: "currentColor", background: text === p.text ? "var(--btn-bg)" : "transparent", fontWeight: text === p.text ? 600 : 400 }}>
+							<button key={p.id} type="button" aria-pressed={text === p.text} onClick={() => setText(p.text)} className="text-xs px-3 py-1.5 rounded-2xl border text-left max-w-full" style={{ borderColor: "currentColor", background: text === p.text ? "var(--btn-bg)" : "transparent", fontWeight: text === p.text ? 600 : 400 }}>
 								{p.label}
 							</button>
 						))}
@@ -378,14 +436,14 @@ export default function SplitCompare() {
 				{group("font-kerning on all three", kerning, [{ value: "auto", label: "auto (the browser default)" }, { value: "none", label: "none (what GSAP and SplitType suggest)" }], setKerning)}
 			</div>
 
-			{error && <p role="alert" className="text-sm">The splitter threw an error: {error}</p>}
+			{error && <p role="alert" className="text-sm font-medium">Not run: {error}</p>}
 
 			{/* The three rendered lines, left edges aligned, with a rule where the unsplit line ends */}
 			<div className="rounded-lg p-5 overflow-x-auto" style={{ background: "color-mix(in oklch, var(--foreground) 4%, transparent)", border: "1px solid color-mix(in oklch, var(--foreground) 12%, transparent)" }}>
 				<div className="flex flex-col gap-4" style={{ width: "max-content", minWidth: "100%" }}>
 					{columns.map((c) => (
 						<div key={c.id} className="flex flex-col gap-1" data-line={c.id}>
-							<div className="flex flex-wrap items-center gap-3">
+							<div className="flex flex-wrap items-center gap-x-3 gap-y-1 sticky left-0" style={{ width: "min(100%, calc(100vw - 6rem))" }}>
 								<span className="text-xs uppercase tracking-[0.12em] text-muted">{c.title}</span>
 								<button type="button" onClick={() => play(c.id)} disabled={!hasText || (c.id === "plain" && !canHighlight)} className="text-xs px-2.5 py-1 rounded-full border disabled:opacity-60" style={{ borderColor: "currentColor" }}>
 									{c.id === "plain" ? (canHighlight ? "Highlight each word without splitting" : "Custom highlights aren’t supported in this browser") : "Play an effect on the pieces"}
@@ -400,7 +458,7 @@ export default function SplitCompare() {
 					))}
 				</div>
 				<p className="text-xs text-muted mt-4" style={{ lineHeight: 1.7 }}>
-					The dashed rule marks where the unsplit line ends. Set in Source Serif 4; emoji, Devanagari and Arabic come from your system’s fonts. The effect is a fade; pieces that are boxes also rise, because a transform (moving, turning or scaling a piece) does nothing to an inline span. Where the link’s underline breaks up, that is the split as well: an underline isn’t drawn across inline-block pieces.
+					The dashed rule marks where the unsplit line ends. Set in Source Serif 4; emoji, Devanagari and Arabic come from your system’s fonts. The effect is a fade; pieces that are boxes also rise, because a transform (moving, turning or scaling a piece) does nothing to an inline span. The one exception is words wrapped inline, which are speechType’s own spans: their button plays its real emphasis, a heavier, wider word. Where the link’s underline breaks up, that is the split as well: an underline isn’t drawn across inline-block pieces.
 				</p>
 			</div>
 
@@ -408,7 +466,7 @@ export default function SplitCompare() {
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 				{columns.map((c) => {
 					const f = facts?.[c.id]
-					const said = f && plain && c.id !== "plain" ? meaning(f, plain) : []
+					const said = f && plain && c.id !== "plain" ? meaning(f, plain, unit, tag) : []
 					const spaces = f ? f.exposed.filter((t) => t === " ").length : 0
 					return (
 						<section key={c.id} data-row={c.id} aria-label={c.title} className="rounded-lg p-4 flex flex-col gap-3 text-sm" style={{ border: "1px solid color-mix(in oklch, var(--foreground) 18%, transparent)" }}>
@@ -425,7 +483,7 @@ export default function SplitCompare() {
 											<dd>
 												{said.length ? (
 													<ul className="list-disc pl-4 flex flex-col gap-1 font-medium">{said.map((line) => <li key={line}>{line}</li>)}</ul>
-												) : "Nothing this panel measures: the width is within half a pixel, and the names, tab stops and text are as written."}
+												) : "Width, names and tab stops match within the measurement tolerance. Compare the structure and text-object counts below as well."}
 											</dd>
 										</div>
 									)}
@@ -437,7 +495,7 @@ export default function SplitCompare() {
 											{f.activeWidth !== null && <span className="block" data-fact-active>While one word is emphasised: up to {f.activeWidth.toFixed(1)} px · {delta(f.activeWidth, plain.width)}</span>}
 											{f.kernOff !== null && f.kernLigaOff !== null && (
 												<span className="block text-xs text-muted mt-1" data-fact-shaping>
-													The same unsplit line with kerning off: {f.kernOff.toFixed(1)} px. With kerning and ligatures off: {f.kernLigaOff.toFixed(1)} px. Letters split into boxes land on the second figure, because each is shaped alone.
+													The same unsplit line with kerning off: {f.kernOff.toFixed(1)} px. With kerning and ligatures off: {f.kernLigaOff.toFixed(1)} px.
 												</span>
 											)}
 										</dd>
@@ -454,8 +512,9 @@ export default function SplitCompare() {
 									<div data-fact="host">
 										<dt className="text-xs uppercase tracking-[0.1em] text-muted">The &lt;{tag}&gt;: role and name</dt>
 										<dd>
-											{f.hostRole}, {f.hostName ? <>named “{f.hostName}”</> : "no name"}
+											{f.hostRole}, {f.hostName ? <>named “<bdi>{f.hostName}</bdi>”</> : "no name"}
 											{f.hostNameProhibited && <strong className="block mt-1">ARIA 1.2 prohibits a name on the {f.hostRole} role. Chrome exposes it anyway; screen readers differ (below).</strong>}
+											{f.nameCapped && <span className="block mt-1 text-xs text-muted" data-name-capped>Chrome’s own tree cuts this name short: it stops building a name from content after 100 objects, and this element has {f.axObjects}.</span>}
 										</dd>
 									</div>
 									<div data-fact="stops">
@@ -476,13 +535,17 @@ export default function SplitCompare() {
 											</dd>
 										</div>
 									)}
+									<div data-fact="unmeasured">
+										<dt className="text-xs uppercase tracking-[0.1em] text-muted">What this page can’t measure</dt>
+										<dd className="text-xs" style={{ lineHeight: 1.6 }}>{unmeasured(c.id, lib, unit, keptDisplay, plain?.links ?? 0)}</dd>
+									</div>
 									<details>
 										<summary className="text-xs text-muted cursor-pointer">Show the markup</summary>
 										<pre className="text-xs mt-2 whitespace-pre-wrap" style={{ overflowWrap: "anywhere" }}><code>{f.html}</code></pre>
 									</details>
 								</dl>
 							) : (
-								<p className="text-xs text-muted">{hasText ? "Measuring…" : "Type a sentence to compare."}</p>
+								<p className="text-sm font-medium" data-empty>{error ? "Nothing to show for this sentence." : hasText ? "Measuring…" : "Type a sentence above to compare (the box is empty)."}</p>
 							)}
 						</section>
 					)
@@ -506,10 +569,9 @@ export default function SplitCompare() {
 			</div>
 
 			<div className="text-xs text-muted flex flex-col gap-2" style={{ lineHeight: 1.7 }}>
-				<p><strong>The words used here.</strong> A <em>screen reader</em> reads a page aloud for someone who can’t see it. It doesn’t read the pixels: it reads the <em>accessibility tree</em>, the browser’s own list of what is on the page. In that list each thing has a <em>role</em> (paragraph, link, heading) and may have a <em>name</em> (for a link, its words). A <em>tab stop</em> is a place the Tab key lands. <em>aria-hidden</em> removes something from that list; <em>aria-label</em> gives something a name by hand. An <em>inline-block</em> is a piece of text made into its own small box, which is what lets an animation move it.</p>
-				<p><strong>How to read this.</strong> Roles, names, tab stops and text objects are computed in your browser from the live markup, following the accessible-name rules (AccName 1.2). They describe what the page offers assistive technology, not what any screen reader says. We checked every reading against Chrome’s own accessibility tree across the presets and settings; the counts are in the <a href="/paper#method" className="underline">paper’s method section</a>. One known difference: Chrome stops building a name from content after 100 objects, so a heading split into inline-block characters (the first preset is long enough) gets a shorter name in Chrome than the full one shown here. Widths are measured from the rendered lines, so they change with your browser, zoom and fonts.</p>
-				<p><strong>More pieces is not the same as broken.</strong> Wrapped in place, the words are all still there and the names are right, but the text now sits in many small objects. Chrome reports them one after another on the same line. Whether a screen reader runs them together is something this page can’t tell: <a href="https://axesslab.com/text-splitting/" className="underline">a 2018 report from a VoiceOver user</a> found iOS stopping at each inline element inside a link. The rows that hand over the sentence in its original pieces are the unsplit one, anime.js’s hidden copy and “boxes beside the real text”.</p>
-				<p><strong>Limits.</strong> One font and one line. What splitting into letters costs depends on the text: an ordinary English sentence here gains about 1 to 2%, the line built from kerning pairs about 6%, the Arabic phrase about a third (its letters stop joining), and SplitType cuts the Devanagari word into parts. Splitting by words costs almost no width in any of these libraries, though GSAP’s link still loses its name. A plain inline span keeps the shaping only while the pieces share one style: change a piece’s weight or size and the browser shapes it separately, and the line changes width. Motion+ splitText is a paid product and isn’t run here; the paper reports what its published build did.</p>
+				<p><strong>How to read this.</strong> Roles, names, tab stops and text objects are computed in your browser from the live markup, following the accessible-name rules (AccName 1.2). They describe what the page offers assistive technology, not what any screen reader says. The original sweep checked 1,603 states / 4,809 column readings and found 198 NBSP name mismatches (90 plain, 90 kept, 18 split). After preserving NBSP, a rebuilt-site check covered 91 states / 273 column readings and still found six host-name spacing mismatches, all in anime.js heading cases. These computed names remain approximations, not verified browser-tree equivalents; inspect Chrome’s tree independently. See the <a href="/paper/data#november" className="underline">dated status and method</a>. One known difference: Chrome stops building a name from content after 100 objects, so a heading split into inline-block characters (the first preset is long enough) gets a shorter name in Chrome than the full one shown here. Widths are measured from the rendered lines, so they change with your browser, zoom and fonts.</p>
+				<p><strong>More pieces is not the same as broken.</strong> Ordinary inline wrapping keeps the words and link names in our browser checks, but adds text objects. Making each character an independent box can change the names too. Whether a screen reader runs the pieces together is something this page can’t tell: <a href="https://axesslab.com/text-splitting/" className="underline">a 2018 report from a VoiceOver user</a> found iOS stopping at each inline element inside a link. The unsplit row, anime.js’s hidden copy and “boxes beside the real text” keep a copy of the sentence in its original pieces.</p>
+				<p><strong>Limits.</strong> One font and one line. What splitting into letters costs depends on the text and the chosen library. The kerning-pair and joined-script presets can change substantially; use the live width readings for your selected state. Splitting by words usually costs less width, although GSAP’s link can still lose its name. A plain inline span keeps shaping across its boundary while the formatting allows it: changing weight or size can require separate shaping. Motion+ splitText is not included in this live comparison.</p>
 			</div>
 		</div>
 	)

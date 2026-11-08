@@ -1,0 +1,15 @@
+/* Content-only reading pages; shared talk engine and talk.css remain byte-identical. */
+.reading-title { font-family:var(--font-merriweather),Georgia,serif; font-weight:300; font-size:36px; font-variation-settings:"wght" 300,"opsz" 36; line-height:1.08; text-wrap:balance; }
+.reading h2 { scroll-margin-top:7rem; }
+.reading a { text-underline-offset:3px; }
+.reading .paper-prose h2 { font-weight:300; font-variation-settings:"wght" 300,"opsz" 30!important; }
+@media(min-width:64rem){
+ .reading-title {font-size:64px;font-variation-settings:"wght" 300,"opsz" 64;}
+ .reading .paper-prose h2 {font-variation-settings:"wght" 300,"opsz" 48!important;}
+}
+@media(min-width:40rem){.reading h2{scroll-margin-top:5rem;}}
+@media print{
+ .reading nav{display:none;}
+ .reading .paper-reveal,.reading [class*="fig-"]{animation:none!important;opacity:1!important;transform:none!important;}
+ .reading figure{break-inside:avoid;}
+}

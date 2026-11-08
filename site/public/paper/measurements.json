@@ -1,0 +1,190 @@
+{
+  "historical": {
+    "date": "2026-10-07",
+    "chromium": "149.0.7827.55",
+    "playwright": "1.61.0",
+    "widths": [
+      {
+        "font": "Merriweather",
+        "size": 20,
+        "text": "Read the terms before you sign.",
+        "unsplit": 288.63,
+        "inline": 288.86,
+        "boxes": 290.78
+      },
+      {
+        "font": "Merriweather",
+        "size": 20,
+        "text": "AVATAR Toward WAVE office affluent",
+        "unsplit": 345.34,
+        "inline": 345.63,
+        "boxes": 355.11
+      },
+      {
+        "font": "Merriweather",
+        "size": 20,
+        "text": "To finish, read the official terms first.",
+        "unsplit": 343.23,
+        "inline": 343.56,
+        "boxes": 344.92
+      },
+      {
+        "font": "Merriweather",
+        "size": 20,
+        "text": "Yes, you can sign today. First read the official terms.",
+        "unsplit": 473.13,
+        "inline": 473.56,
+        "boxes": 479.52
+      },
+      {
+        "font": "Merriweather",
+        "size": 20,
+        "text": "Every word spoken carries its own weight",
+        "unsplit": 382.11,
+        "inline": 382.47,
+        "boxes": 385.33
+      },
+      {
+        "font": "Merriweather",
+        "size": 32,
+        "text": "Read the terms before you sign.",
+        "unsplit": 455.59,
+        "inline": 455.81,
+        "boxes": 458.84
+      },
+      {
+        "font": "Merriweather",
+        "size": 32,
+        "text": "AVATAR Toward WAVE office affluent",
+        "unsplit": 546.75,
+        "inline": 546.98,
+        "boxes": 562.48
+      },
+      {
+        "font": "Merriweather",
+        "size": 32,
+        "text": "To finish, read the official terms first.",
+        "unsplit": 541.17,
+        "inline": 541.45,
+        "boxes": 543.67
+      },
+      {
+        "font": "Merriweather",
+        "size": 32,
+        "text": "Yes, you can sign today. First read the official terms.",
+        "unsplit": 746.22,
+        "inline": 746.63,
+        "boxes": 756.03
+      },
+      {
+        "font": "Merriweather",
+        "size": 32,
+        "text": "Every word spoken carries its own weight",
+        "unsplit": 603.56,
+        "inline": 603.88,
+        "boxes": 608.16
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 20,
+        "text": "Read the terms before you sign.",
+        "unsplit": 281.39,
+        "inline": 281.58,
+        "boxes": 283.31
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 20,
+        "text": "AVATAR Toward WAVE office affluent",
+        "unsplit": 325.89,
+        "inline": 326.09,
+        "boxes": 345.53
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 20,
+        "text": "To finish, read the official terms first.",
+        "unsplit": 329.34,
+        "inline": 329.58,
+        "boxes": 335.56
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 20,
+        "text": "Yes, you can sign today. First read the official terms.",
+        "unsplit": 459.45,
+        "inline": 459.8,
+        "boxes": 468.09
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 20,
+        "text": "Every word spoken carries its own weight",
+        "unsplit": 368.39,
+        "inline": 368.66,
+        "boxes": 371.48
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 32,
+        "text": "Read the terms before you sign.",
+        "unsplit": 438.0,
+        "inline": 438.22,
+        "boxes": 440.98
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 32,
+        "text": "AVATAR Toward WAVE office affluent",
+        "unsplit": 507.36,
+        "inline": 507.59,
+        "boxes": 538.22
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 32,
+        "text": "To finish, read the official terms first.",
+        "unsplit": 512.61,
+        "inline": 512.91,
+        "boxes": 521.83
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 32,
+        "text": "Yes, you can sign today. First read the official terms.",
+        "unsplit": 713.98,
+        "inline": 714.41,
+        "boxes": 727.44
+      },
+      {
+        "font": "Source Serif 4",
+        "size": 32,
+        "text": "Every word spoken carries its own weight",
+        "unsplit": 573.09,
+        "inline": 573.41,
+        "boxes": 578.16
+      }
+    ]
+  },
+  "browserCheck": {
+    "date": "2026-11-06",
+    "kind": "Browser measurements, not screen-reader tests",
+    "arabic": {
+      "text": "مرحبا بالعالم اليوم",
+      "font": "system Arabic fallback",
+      "size": 32,
+      "unsplit": 196.2,
+      "gsapCharacters": 261.1,
+      "inlineCharacters": 196.4,
+      "provenance": "Final panel practitioner browser run; fonts ready; 10-arabic-gsap.txt"
+    },
+    "link": {
+      "text": "the official terms",
+      "unsplit": "the official terms",
+      "gsapCharacters": "",
+      "inlineCharacters": "the official terms",
+      "oldSpeechType": "link removed",
+      "provenance": "Final panel Chrome AX captures 02-default, 03-words, 04-old-speechtype"
+    }
+  }
+}

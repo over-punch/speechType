@@ -1,0 +1,319 @@
+Speech Type
+Type Tools
+▾
+GitHub ↗
+
+SPEECH-DRIVEN EMPHASIS
+
+Typography that
+follows your voice.
+npm install @overpunch/speechtype
+⎘
+npm ↗
+GitHub ↗
+TypeScript
+·
+Zero dependencies
+·
+React + Vanilla JS
+
+When a browser reads text aloud with speech synthesis, nothing on the page shows which word is being spoken. speechType listens to the Web Speech API’s boundary events and marks each word as it is spoken: by default with weight, optical size and spacing on a plain span around each word, or (next release) with a highlight that adds nothing to the page. The text stays real text either way: links keep their names, and the accessibility tree keeps the paragraph you wrote.
+
+LIVE DEMO — STEP WITH THE WORD SLIDER OR PRESS SPEAK IF SUPPORTED
+▶
+Speak
+MARK THE SPOKEN WORD WITH
+Type: weight, size and spacing (a span per word)
+A highlight (no spans; next release)
+
+Each word sits in its own plain span: nothing is hidden and no label is added. The spoken word gets heavier, larger in optical size and wider, and carries aria-current, the one attribute speechType writes. The extra width moves the words after it, and at some column widths a line rewraps while it plays.
+
+WORD
+—
+ACTIVE WEIGHT
+700
+INACTIVE OPACITY
+0.75
+
+Dimmed words on this page: 4.7:1. That clears the 4.5:1 that WCAG AA asks of body text. The published default is 0.45; the next release’s is 0.6.
+
+RATE
+0.9×
+TRANSITION
+80MS
+
+Every word spoken carries its own weight, a breath of meaning that arrives, lingers, and fades. To read aloud is to make language visible in time, each syllable a footprint left in the air. The voice knows where it is. The page does not.
+
+Press Speak to hear the paragraph read aloud by your browser’s speech synthesis, with each word marked as it is spoken, or use the Word slider to step through by hand. “read aloud” is a real link: it stays a link, with its name, in both modes. Meant for read-along reading aids, language learning and teleprompters. It is not a screen reader and doesn’t replace one.
+
+WHAT SPLITTING TEXT COSTS — MEASURED ON THIS PAGE
+
+speechType has to put every word in its own span, and so does any effect that moves words or letters one at a time. Until version 1.1.0 it also hid those spans from screen readers, a mistake several of our tools made. Below, one sentence with a link is set three ways: as written, split by a published library (the real package, run in your browser), and wrapped in place the way speechType does it now. Each version reports its measured width and what it offers assistive technology.
+
+The words used here. A screen reader reads a page aloud for someone who can’t see it. It doesn’t read the pixels: it reads the accessibility tree, the browser’s own list of what is on the page. In that list each thing has a role (paragraph, link, heading) and may have a name (for a link, its words). A tab stop is a place the Tab key lands. aria-hidden removes something from that list; aria-label gives something a name by hand. An inline-block is a piece of text made into its own small box, which is what lets an animation move it. Kerning is the font tucking certain pairs of letters closer (A and V); a ligature is two or three letters drawn as one joined shape (ffi). Both happen only between letters that are set together.
+
+SENTENCE (SQUARE BRACKETS MARK THE LINK)
+A sentence with a link
+Kerning pairs and ligatures
+Emoji and Devanagari
+Arabic (joined letters)
+21 of 90 characters
+SPLIT BY
+GSAP SplitText 3.15.0
+anime.js splitText 4.5.0
+SplitType 0.3.4
+Splitting 1.1.0
+speechType 1.0.11 (ours, before the fix)
+SPLIT INTO
+Characters
+Words
+ELEMENT
+<p>
+<h2>
+<div>
+WRAPPED-IN-PLACE PIECES
+Inline spans (colour, weight)
+Inline-block (can move)
+Inline-block beside the real text (can move)
+FONT-KERNING ON ALL THREE
+auto (the browser default)
+none (what GSAP and SplitType suggest)
+UNSPLIT
+Highlight each word without splitting
+
+مرحبا بالعالم اليوم
+
+SPLIT BY GSAP SPLITTEXT 3.15.0
+Play an effect on the pieces
+
+مرحبا بالعالم اليوم
+
+WRAPPED IN PLACE, INLINE
+Play an effect on the pieces
+
+مرحبا بالعالم اليوم
+
+The dashed rule marks where the unsplit line ends. Set in Source Serif 4; emoji, Devanagari and Arabic come from your system’s fonts. The effect is a fade; pieces that are boxes also rise, because a transform (moving, turning or scaling a piece) does nothing to an inline span. The one exception is words wrapped inline, which are speechType’s own spans: their button plays its real emphasis, a heavier, wider word. Where the link’s underline breaks up, that is the split as well: an underline isn’t drawn across inline-block pieces.
+
+Unsplit
+
+The sentence as written. Its button runs speechType’s highlight mode (in the repository, not on npm yet): it paints each word with the CSS Custom Highlight API and adds nothing to the page. Highlights can change colour and background, not weight, size or position.
+
+LINE WIDTH
+196.2 px
+The same unsplit line with kerning off: 201.5 px. With kerning and ligatures off: 201.5 px.
+ADDED TO THE PAGE
+0 elements; aria-hidden on 0; aria-label on the <p>: no
+THE <P>: ROLE AND NAME
+paragraph, no name
+TAB STOPS AND THEIR NAMES
+1: “⁨بالعالم⁩”
+TEXT LEFT IN THE ACCESSIBILITY TREE
+3 text objects outside aria-hidden: “⁨مرحبا⁩”, “⁨بالعالم⁩”, “⁨اليوم⁩”
+WHAT THIS PAGE CAN’T MEASURE
+The highlight button’s costs: it can change colour and background only, and it marks nothing in the markup, so the page has no record of which word is current. It hasn’t been tried with a screen reader.
+Show the markup
+Split by GSAP SplitText 3.15.0
+
+Default aria: "auto": copies the text into aria-label on the element and puts aria-hidden on every piece.
+
+SplitText.create(el, { type: "chars,words" })
+
+WHAT CHANGED, IN PLAIN WORDS
+A link has no name. Someone using a screen reader reaches it and isn’t given the link’s words.
+The sentence now exists only as an aria-label on a <p>. ARIA doesn’t allow a name there, so whether it is read depends on the screen reader: in the test quoted below, of a <div>, two of eight read it.
+The line is 64.9 px wider: each letter is shaped alone. That is wider even than the unsplit line with kerning and ligatures switched off (201.5 px), because letters that should join or stack have come apart.
+LINE WIDTH
+261.1 px · +64.9 px (+33.1%)
+ADDED TO THE PAGE
+20 elements (17 pieces, display: inline-block); aria-hidden on 20; aria-label on the <p>: yes
+THE <P>: ROLE AND NAME
+paragraph, named “مرحبا بالعالم اليوم”
+ARIA 1.2 prohibits a name on the paragraph role. Chrome exposes it anyway; screen readers differ (below).
+TAB STOPS AND THEIR NAMES
+1: (no name)
+TEXT LEFT IN THE ACCESSIBILITY TREE
+0 text objects outside aria-hidden: none
+CHARACTERS KEPT WHOLE
+17 characters became 17 pieces
+WHAT THIS PAGE CAN’T MEASURE
+Not measured here: what each screen reader does with this markup.
+Show the markup
+Wrapped in place, inline
+
+A plain span around each character, nothing else: no ARIA attributes. (speechType itself wraps words; this is the same idea per character.)
+
+WHAT CHANGED, IN PLAIN WORDS
+The same words, in 19 text objects instead of 3. Whether a screen reader pauses or stops between them isn’t something this page can tell.
+LINE WIDTH
+196.4 px · +0.2 px (+0.1%)
+ADDED TO THE PAGE
+17 elements (17 pieces, display: inline); aria-hidden on 0; aria-label on the <p>: no
+THE <P>: ROLE AND NAME
+paragraph, no name
+TAB STOPS AND THEIR NAMES
+1: “⁨بالعالم⁩”
+TEXT LEFT IN THE ACCESSIBILITY TREE
+19 text objects outside aria-hidden (17 with letters, 2 spaces): “⁨م⁩”, “⁨ر⁩”, “⁨ح⁩”, “⁨ب⁩” (+13 more)
+CHARACTERS KEPT WHOLE
+17 characters became 17 pieces
+WHAT THIS PAGE CAN’T MEASURE
+Not measured here: what a screen reader does with one object per letter.
+Show the markup
+What screen readers did with the aria-label pattern (not our test)
+
+We ran no screen reader. Adrian Roselli did: he tested GSAP’s own SplitText demo, a <div> with an aria-label and aria-hidden pieces, in eight screen reader and browser pairings and reported which ones exposed the text (GSAP issue 642, 5 February 2026). Two did. His table covers that one demo on a <div>; a heading may be named, so a split <h2> is a different case. It is the only published test of this pattern we found, and we looked in the libraries’ own issue trackers, not everywhere.
+
+NVDA / Firefox: yes
+JAWS / Chrome: no
+Narrator / Edge: no
+VoiceOver macOS / Safari: no
+Orca / Firefox: no
+TalkBack / Chrome: yes
+TalkBack / Firefox: no
+VoiceOver iPadOS / Safari: no
+
+How to read this. Roles, names, tab stops and text objects are computed in your browser from the live markup, following the accessible-name rules (AccName 1.2). They describe what the page offers assistive technology, not what any screen reader says. We checked every reading against Chrome’s own accessibility tree across the presets and settings; the counts are in the paper’s method section. One known difference: Chrome stops building a name from content after 100 objects, so a heading split into inline-block characters (the first preset is long enough) gets a shorter name in Chrome than the full one shown here. Widths are measured from the rendered lines, so they change with your browser, zoom and fonts.
+
+More pieces is not the same as broken. Wrapped in place, the words are all still there and the names are right, but the text now sits in many small objects. Chrome reports them one after another on the same line. Whether a screen reader runs them together is something this page can’t tell: a 2018 report from a VoiceOver user found iOS stopping at each inline element inside a link. The rows that hand over the sentence in its original pieces are the unsplit one, anime.js’s hidden copy and “boxes beside the real text”.
+
+Limits. One font and one line. What splitting into letters costs depends on the text: an ordinary English sentence here gains about 1 to 2%, the line built from kerning pairs about 6%, the Arabic phrase about a third (its letters stop joining), and SplitType cuts the Devanagari word into parts. Splitting by words costs almost no width in any of these libraries, though GSAP’s link still loses its name. A plain inline span keeps the shaping only while the pieces share one style: change a piece’s weight or size and the browser shapes it separately, and the line changes width. Motion+ splitText is a paid product and isn’t run here; the paper reports what its published build did.
+
+HOW IT WORKS
+
+The audio-text gap
+
+When the browser speaks text via SpeechSynthesisUtterance, words are heard but not seen. There is no CSS property that tracks synthesis progress — the visual and the auditory are decoupled by design. speechType closes that gap.
+
+Boundary events drive emphasis
+
+The Web Speech API fires boundary events as each word begins. speechType maps the reported character index to the word and applies typographic emphasis (wider tracking, heavier weight, larger optical size) while dimming the other words. Not every voice sends word boundaries; with one that doesn't, the text is spoken and nothing is marked.
+
+Imperative for performance
+
+During active speech, startSpeechType handles each boundary event directly — updating span styles without touching React state or triggering re-renders. The boundary event fires, the span style changes, and the frame is painted. No scheduling, no batching delay.
+
+React or vanilla JS
+
+SpeechTypeText and useSpeechType manage span preparation and React-driven emphasis. startSpeechType is the vanilla JS entry point — it wraps, speaks, and syncs, returning a stop function.
+
+USAGE
+
+TypeScript + React · Vanilla JS
+
+Drop-in component
+
+import { SpeechTypeText, startSpeechType } from '@overpunch/speechtype'
+import { useRef, useState } from 'react'
+
+// Drive activeWordIndex via startSpeechType or your own state
+const [activeWordIndex, setActiveWordIndex] = useState(-1)
+const ref = useRef<HTMLParagraphElement>(null)
+
+// startSpeechType updates the spans imperatively during speech:
+<SpeechTypeText ref={ref} activeWordIndex={activeWordIndex}>
+  The voice knows where it is. The page does not.
+</SpeechTypeText>
+
+Start speech synthesis and sync emphasis
+
+import { startSpeechType } from '@overpunch/speechtype'
+
+const el = document.querySelector('p')
+const stop = startSpeechType(el, { rate: 0.9, activeWeight: 700 })
+
+// Later — cancel speech and restore styles:
+// stop()
+
+Hook — manual control with your own active index
+
+import { useSpeechType } from '@overpunch/speechtype'
+import { useRef } from 'react'
+
+// Inside a React component:
+const ref = useRef(null)
+useSpeechType(ref, activeWordIndex, { inactiveOpacity: 0.4 })
+return <p ref={ref}>Every word spoken carries its own weight.</p>
+
+Options
+
+Option	Default	Description
+activeTracking	0.06	Letter-spacing on the active word in em.
+activeWeight	+300	wght axis value on the active word. Unset: the word's own weight plus 300 (400 becomes 700).
+activeOpsz	×1.5	opsz axis value on the active word. Unset: 1.5 times the word's own optical size.
+inactiveOpacity	0.45	Opacity of words not currently spoken. Dimming lowers contrast while a word is active: at 0.45, black on white is 3.4:1, under WCAG AA. The next release defaults to 0.6 (5.7:1); set it yourself until then.
+transitionMs	80	CSS transition duration in ms for style changes.
+mode	'spans'	Next release, not on npm yet. 'highlight' wraps nothing and paints the spoken word with the CSS Custom Highlight API (style it with ::highlight(speechtype)). Colour and background only; falls back to spans where the API is missing.
+rate	0.9	Speech rate (0.1–10). Accepted by all paths; speech options (rate, pitch, volume) are silently ignored by SpeechTypeText and useSpeechType.
+pitch	1	Speech pitch (0–2). Silently ignored by SpeechTypeText and useSpeechType.
+volume	1	Speech volume (0–1). Silently ignored by SpeechTypeText and useSpeechType.
+onUnsupported	—	Called when the browser does not support SpeechSynthesis.
+onError	—	Called with the SpeechSynthesisErrorEvent if synthesis errors.
+as	'p'	HTML element to render. (SpeechTypeText only)
+LIMITS
+We have not tested speechType with a screen reader. What we checked is Chrome's accessibility tree, where names and roles match the unwrapped text. A span per word does split the text into more pieces in that tree, and a 2018 report found VoiceOver on iOS stopping at inline elements; the highlight mode avoids spans altogether.
+The default emphasis makes the spoken word heavier and wider, so lines can rewrap while it plays. The highlight mode can't move text, and can't change weight or size either.
+Dimming the other words lowers their contrast for as long as a word is active. The published default, 0.45, puts black-on-white text at 3.4:1, under the 4.5:1 that WCAG AA asks; the next release defaults to 0.6 (5.7:1). On softer colours you need more: the demo above shows the ratio for this page. Set inactiveOpacity to 1 for no dimming.
+Speech synthesis, its voices and its word-boundary events come from the browser and the operating system, and differ between them.
+
+NO-CODE
+
+Use it in Webflow
+
+The same effect, no build step — drop it straight into your design tool.
+
+Webflow
+
+One script tag, then mark any element with data-speechtype. Configure it with data-* attributes.
+
+<!-- Site Settings → Custom Code → Footer, or an Embed element -->
+<script src="https://cdn.jsdelivr.net/npm/@overpunch/speechtype/dist/speechtype.webflow.min.js"></script>
+
+<!-- Then add data-speechtype to any text element -->
+<h1 data-speechtype>Your headline</h1>
+Axis Rhythm
+Alternates variable font axes per line for rhythmic texture
+CEDARS+
+Reads a CEDARS-style typographic profile from a font's outline geometry
+Confetti Text
+Bursts your text into a confetti cannon made of its own letters
+Fit Flush
+Expands tracking and axes to flush-fill a container
+Fit Width
+Fits a headline to its box: width axis first, then tracking or size
+Flood Text
+Animates variable font axes in waves across each character
+Glyph Shaper
+Edit bezier glyph paths live via opentype.js
+Hover Boldly
+Bolds text on hover without shifting surrounding layout
+Magnet Type
+Varies font axes per character by cursor proximity
+Optical Margin
+Hangs punctuation beyond the text block for optical alignment
+Opsz Stepper
+Hot-swaps optical font families as font-size crosses thresholds
+Ragtooth
+Sets a deliberate sawtooth rag on paragraph line endings
+Speech Type
+Highlights each spoken word with typographic emphasis in real time
+Stabil Type
+Adapts tracking, weight, and opsz to motion velocity
+Steady Gray
+Equalises optical density across paragraph lines
+Text Breath
+Oscillates letter-spacing per line in a slow breathing wave
+Thread Text
+Renders text as photorealistic procedural satin-stitch embroidery
+Typsettle
+Settles per-line tracking from loose to tight after layout
+VF Clamp
+Restricts a variable font's axis ranges to a specific subfamily scope
+Wrap Type
+Wraps live DOM text around any 3D surface with CSS3D and SDF
+npm v1.1.0 · site v0.1.7
+
+This site uses Google Analytics to understand how visitors use it. No personal data is shared beyond standard GA4 defaults.
+
+Decline
+Accept

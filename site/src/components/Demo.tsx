@@ -7,7 +7,7 @@ import { SpeechTypeText, startSpeechType } from "@overpunch/speechtype"
 import type { SpeechTypeOptions } from "@overpunch/speechtype"
 
 /** Sample paragraph about voice, speech, and the act of reading */
-const SAMPLE = "Every word spoken carries its own weight — a breath of meaning that arrives, lingers, and fades. To read aloud is to make language visible in time, each syllable a footprint left in the air. The voice knows where it is. The page does not."
+const SAMPLE = "Every word spoken carries its own weight, a breath of meaning that arrives, lingers, and fades. To read aloud is to make language visible in time, each syllable a footprint left in the air. The voice knows where it is. The page does not."
 
 /** The words of the sample that are a link in the demo (a link has to survive the word-wrapping), and the text either side */
 const SAMPLE_LINK = "read aloud"
@@ -204,7 +204,6 @@ export default function Demo() {
 					<div className="flex items-center gap-4">
 						<button
 							onClick={speaking ? handleStop : handleSpeak}
-							aria-pressed={speaking}
 							aria-label={speaking ? 'Stop speech synthesis' : 'Speak paragraph aloud using speech synthesis'}
 							title={speaking ? 'Stop speech synthesis and reset emphasis' : 'Read the paragraph aloud using speech synthesis — each word is emphasised as it is spoken'}
 							className="flex items-center gap-2 text-sm px-4 py-2 rounded-full border transition-all"
@@ -227,7 +226,7 @@ export default function Demo() {
 				<div className="flex flex-col gap-2" role="group" aria-label="How the spoken word is marked">
 					<span className="text-xs uppercase tracking-[0.12em] text-muted">Mark the spoken word with</span>
 					<div className="flex flex-wrap gap-2">
-						{([['spans', 'Type: weight, size and spacing (a span per word)'], ['highlight', 'A highlight (no spans; next release)']] as const).map(([value, label]) => (
+						{([['spans', 'Type: weight, optical size and tracking (a span per word)'], ['highlight', 'A highlight (no spans; opt-in in 1.2.0)']] as const).map(([value, label]) => (
 							<button
 								key={value}
 								type="button"
@@ -243,9 +242,9 @@ export default function Demo() {
 					</div>
 					<p className="text-xs text-muted" style={{ lineHeight: 1.7 }}>
 						{mode === 'spans'
-							? 'Each word sits in its own plain span: nothing is hidden and no label is added. The spoken word gets heavier, larger in optical size and wider, and carries aria-current, the one attribute speechType writes. The extra width moves the words after it, and at some column widths a line rewraps while it plays.'
+							? 'Each word sits in its own plain span: nothing is hidden and no label is added. The spoken word gets heavier, uses a higher opsz axis value and more tracking, and carries aria-current, the one attribute speechType writes. CSS font size stays the same. These styles make the active word wider in this specimen, moving following words and sometimes rewrapping a line.'
 							: canHighlight
-								? 'Nothing is added to the paragraph. The spoken word is painted with the CSS Custom Highlight API, which can change colour and background only, so the text never moves. The weight, opacity and transition sliders do nothing in this mode. In the repository; not on npm yet.'
+								? 'Nothing is added to the paragraph. The spoken word is painted with the CSS Custom Highlight API, which supports a restricted set of painting properties, including colour, background, text decoration and text shadow, subject to browser support. This demo uses colour and background without changing layout; highlights cannot change font weight, font size or transforms. The weight, opacity and transition sliders do nothing in this mode. Available in speechType 1.2.0 as an opt-in mode; spans remain the default.'
 								: 'This browser has no CSS Custom Highlight API, so the highlight mode isn’t available here.'}
 					</p>
 				</div>
@@ -263,7 +262,7 @@ export default function Demo() {
 						step={1}
 						value={activeWordIndex}
 						aria-label="Word (manual step through spoken words)"
-						aria-valuetext={activeWordIndex >= 0 ? `Word ${activeWordIndex + 1} of ${WORDS.length}: ${currentWordText}` : 'No word marked'}
+						aria-valuetext={speaking ? 'Following the speech' : activeWordIndex >= 0 ? `Word ${activeWordIndex + 1} of ${WORDS.length}: ${currentWordText}` : 'No word marked'}
 						title="Step through words one at a time — each word is emphasised as if it were being spoken aloud"
 						onChange={e => {
 							if (speaking) handleStop()
@@ -291,7 +290,7 @@ export default function Demo() {
 						title="Font weight applied to the spoken word — higher values make the active word bolder and more prominent"
 						onChange={e => setActiveWeight(Number(e.target.value))}
 						onTouchStart={e => e.stopPropagation()}
-						style={{ touchAction: 'none' }}
+						style={{ touchAction: 'none', opacity: mode === 'highlight' ? 0.35 : 1 }}
 					/>
 				</div>
 
@@ -312,14 +311,14 @@ export default function Demo() {
 						title="Opacity of words that are not currently being spoken — lower values create stronger contrast between the active word and the rest"
 						onChange={e => setInactiveOpacity(Number(e.target.value))}
 						onTouchStart={e => e.stopPropagation()}
-						style={{ touchAction: 'none' }}
+						style={{ touchAction: 'none', opacity: mode === 'highlight' ? 0.35 : 1 }}
 					/>
 				<p className="text-xs text-muted" data-dim-contrast>
 							{mode === 'highlight'
 								? 'Nothing is dimmed in highlight mode, and the weight and transition sliders don’t apply.'
 								: dimRatio === null
 								? 'Dimming lowers the contrast of the words not being spoken.'
-								: `Dimmed words on this page: ${dimRatio.toFixed(1)}:1. ${dimRatio >= AA ? 'That clears' : 'That is under'} the ${AA}:1 that WCAG AA asks of body text. The published default is 0.45; the next release’s is 0.6.`}
+								: `Dimmed words on this page: ${dimRatio.toFixed(1)}:1. ${dimRatio >= AA ? 'That clears' : 'That is under'} the ${AA}:1 that WCAG AA asks of body text. The published 1.2.0 default is 0.6; it can still fail AA on other palettes. This demo starts at 0.75 for its own colours.`}
 						</p>
 					</div>
 
@@ -360,7 +359,7 @@ export default function Demo() {
 						title="How long the font-weight and opacity transition takes when emphasis moves from one word to the next — 0ms is instant, 300ms is a smooth fade"
 						onChange={e => setTransitionMs(Number(e.target.value))}
 						onTouchStart={e => e.stopPropagation()}
-						style={{ touchAction: 'none' }}
+						style={{ touchAction: 'none', opacity: mode === 'highlight' ? 0.35 : 1 }}
 					/>
 				</div>
 			</div>

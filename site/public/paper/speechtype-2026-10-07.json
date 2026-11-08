@@ -1,0 +1,120 @@
+{
+ "date": "2026-10-07T15:36:10.416Z",
+ "chromium": "149.0.7827.55",
+ "versions": {
+  "1.0.11": {
+   "p": {
+    "html": "<p id=\"c0\"><span class=\"st-word\" aria-hidden=\"true\" style=\"display: inline; transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">Read</span> <span class=\"st-word\" aria-hidden=\"true\" style=\"display: inline; transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">the</span> <span class=\"st-word\" aria-hidden=\"true\" style=\"display: inline; transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">terms</span> <span class=\"st-word\" aria-hidden=\"true\" style=\"display: inline; transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">before</span> <span class=\"st-word\" aria-hidden=\"true\" style=\"display: inline; transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">you</span> <span class=\"st-word\" aria-hidden=\"true\" aria-current=\"true\" style=\"display: inline; transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 1; font-variation-settings: &quot;wght&quot; 700, &quot;opsz&quot; 24; letter-spacing: 0.06em;\">sign.</span><span data-st-live=\"\" aria-live=\"polite\" aria-atomic=\"true\" style=\"position: absolute; width: 1px; height: 1px; padding: 0px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border: 0px;\">sign.</span></p>",
+    "spokenText": "Read the terms before you sign.",
+    "ariaHidden": 6,
+    "liveRegions": [
+     {
+      "live": "polite",
+      "inside": true,
+      "text": "sign."
+     }
+    ],
+    "announced": [
+     "Read",
+     "the",
+     "terms",
+     "before",
+     "you",
+     "sign."
+    ],
+    "links": 0,
+    "chromeAX": [
+     "paragraph:\"\"",
+     "StaticText:\" \"",
+     "StaticText:\" \"",
+     "StaticText:\" \"",
+     "StaticText:\" \"",
+     "StaticText:\" \"",
+     "generic:\"\"",
+     "StaticText:\"sign.\""
+    ],
+    "ariaSnapshot": "- paragraph: sign."
+   },
+   "h2": {
+    "html": "<h2 id=\"c1\"><span class=\"st-word\" aria-hidden=\"true\" style=\"display: inline; transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">Chapter</span> <span class=\"st-word\" aria-hidden=\"true\" style=\"display: inline; transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">one</span> <span class=\"st-word\" aria-hidden=\"true\" aria-current=\"true\" style=\"display: inline; transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 1; font-variation-settings: &quot;wght&quot; 700, &quot;opsz&quot; 24; letter-spacing: 0.06em;\">begins</span><span data-st-live=\"\" aria-live=\"polite\" aria-atomic=\"true\" style=\"position: absolute; width: 1px; height: 1px; padding: 0px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border: 0px;\">begins</span></h2>",
+    "spokenText": "Chapter one begins",
+    "ariaHidden": 3,
+    "liveRegions": [
+     {
+      "live": "polite",
+      "inside": false,
+      "text": "sign."
+     },
+     {
+      "live": "polite",
+      "inside": true,
+      "text": "begins"
+     }
+    ],
+    "announced": [
+     "sign.",
+     "Chapter",
+     "sign.",
+     "one",
+     "sign.",
+     "begins"
+    ],
+    "links": 0,
+    "chromeAX": [
+     "heading:\" begins\"",
+     "StaticText:\" \"",
+     "StaticText:\" \"",
+     "generic:\"\"",
+     "StaticText:\"begins\""
+    ],
+    "ariaSnapshot": "- heading \"begins\" [level=2]"
+   }
+  },
+  "1.1.0": {
+   "p": {
+    "html": "<p id=\"c0\"><span class=\"st-word\" style=\"transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">Read</span> <a href=\"/terms\"><span class=\"st-word\" style=\"transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">the</span> <span class=\"st-word\" style=\"transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">terms</span></a> <span class=\"st-word\" style=\"transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">before</span> <span class=\"st-word\" style=\"transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">you</span> <span class=\"st-word\" aria-current=\"true\" style=\"transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 1; font-variation-settings: &quot;wght&quot; 700, &quot;opsz&quot; 24; letter-spacing: 0.06em;\">sign.</span></p>",
+    "spokenText": "Read the terms before you sign.",
+    "ariaHidden": 0,
+    "liveRegions": [],
+    "announced": [],
+    "links": 1,
+    "chromeAX": [
+     "paragraph:\"\"",
+     "StaticText:\"Read\"",
+     "StaticText:\" \"",
+     "link:\"the terms\"",
+     "StaticText:\"the\"",
+     "StaticText:\" \"",
+     "StaticText:\"terms\"",
+     "StaticText:\" \"",
+     "StaticText:\"before\"",
+     "StaticText:\" \"",
+     "StaticText:\"you\"",
+     "StaticText:\" \"",
+     "generic:\"\"",
+     "StaticText:\"sign.\""
+    ],
+    "ariaSnapshot": "- paragraph:\n  - text: Read\n  - link \"the terms\":\n    - /url: /terms\n  - text: before you sign."
+   },
+   "h2": {
+    "html": "<h2 id=\"c1\"><span class=\"st-word\" style=\"transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">Chapter</span> <a href=\"/one\"><span class=\"st-word\" style=\"transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 0.45;\">one</span></a> <span class=\"st-word\" aria-current=\"true\" style=\"transition: font-variation-settings 80ms, letter-spacing 80ms, opacity 80ms; opacity: 1; font-variation-settings: &quot;wght&quot; 1000, &quot;opsz&quot; 36; letter-spacing: 0.06em;\">begins</span></h2>",
+    "spokenText": "Chapter one begins",
+    "ariaHidden": 0,
+    "liveRegions": [],
+    "announced": [],
+    "links": 1,
+    "chromeAX": [
+     "heading:\"Chapter one begins\"",
+     "StaticText:\"Chapter\"",
+     "StaticText:\" \"",
+     "link:\"one\"",
+     "StaticText:\"one\"",
+     "StaticText:\" \"",
+     "generic:\"\"",
+     "StaticText:\"begins\""
+    ],
+    "ariaSnapshot": "- heading \"Chapter one begins\" [level=2]:\n  - text: Chapter\n  - link \"one\":\n    - /url: /one\n  - text: begins"
+   }
+  }
+ }
+}
